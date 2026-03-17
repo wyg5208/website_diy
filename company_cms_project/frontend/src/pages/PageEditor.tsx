@@ -62,6 +62,7 @@ import ImagePicker from '../components/ImagePicker';
 import { COMPONENT_LIST, type PageComponent, type ComponentType } from '../types/components';
 import { savePageConfig, getPageConfig } from '../api/pages';
 import { getEditablePages } from '../api/menus';
+import { getCategoriesAndTags } from '../api/posts';
 
 const { Sider, Content } = Layout;
 
@@ -198,6 +199,8 @@ const PageEditor: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [currentPageKey, setCurrentPageKey] = useState('home');
   const [pageList, setPageList] = useState<{key: string; title: string; path: string}[]>([]);
+  const [categories, setCategories] = useState<any[]>([]); // 分类列表
+  const [tags, setTags] = useState<any[]>([]); // 标签列表
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -229,6 +232,20 @@ const PageEditor: React.FC = () => {
       }
     };
     loadPageList();
+  }, []);
+
+  // 加载分类和标签列表
+  useEffect(() => {
+    const loadCategoriesAndTags = async () => {
+      try {
+        const res = await getCategoriesAndTags();
+        setCategories(res.data.categories || []);
+        setTags(res.data.tags || []);
+      } catch (error) {
+        console.error('Failed to load categories and tags:', error);
+      }
+    };
+    loadCategoriesAndTags();
   }, []);
 
   // 从 URL 参数获取当前页面（同步获取，避免时序问题）
@@ -1743,6 +1760,7 @@ const PageEditor: React.FC = () => {
                             { value: 'image', label: '图片' },
                             { value: 'button', label: '按钮' },
                             { value: 'cards', label: '卡片列表' },
+                            { value: 'articles', label: '文章列表' },
                             { value: 'divider', label: '分割线' },
                             // 嵌套容器内不能再添加容器（已达最大深度）
                           ]}
@@ -1781,6 +1799,7 @@ const PageEditor: React.FC = () => {
                     { value: 'image', label: '图片' },
                     { value: 'button', label: '按钮' },
                     { value: 'cards', label: '卡片列表' },
+                    { value: 'articles', label: '文章列表' },
                     { value: 'divider', label: '分割线' },
                   ];
                   // 如果当前容器是顶层容器（depth=0），可以添加嵌套容器
@@ -1836,25 +1855,42 @@ const PageEditor: React.FC = () => {
               <Switch checked={props.showPagination} onChange={(v) => handlePropsChange('showPagination', v)} />
             </Form.Item>
             
-            {/* TODO: 分类和标签选择，需要从后端获取数据 */}
+            {/* 分类和标签选择 */}
             <Form.Item label="按分类筛选" tooltip="留空则显示所有分类">
-              <Input 
-                type="number"
-                value={props.categoryId || ''} 
-                onChange={(e) => handlePropsChange('categoryId', e.target.value ? Number(e.target.value) : undefined)} 
-                placeholder="输入分类 ID"
+              <Select 
+                value={props.categoryId || undefined} 
+                onChange={(v) => handlePropsChange('categoryId', v)} 
+                placeholder="选择文章分类"
+                allowClear
+                showSearch
+                filterOption={(input, option) => 
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={[
+                  { value: undefined, label: '全部分类' },
+                  ...categories.map(cat => ({ value: cat.id, label: cat.name }))
+                ]}
               />
             </Form.Item>
             <Form.Item label="按标签筛选" tooltip="留空则显示所有标签">
-              <Input 
-                value={props.tagId || ''} 
-                onChange={(e) => handlePropsChange('tagId', e.target.value)} 
-                placeholder="输入标签名称或 ID"
+              <Select 
+                value={props.tagId || undefined} 
+                onChange={(v) => handlePropsChange('tagId', v)} 
+                placeholder="选择文章标签"
+                allowClear
+                showSearch
+                filterOption={(input, option) => 
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={[
+                  { value: undefined, label: '全部标签' },
+                  ...tags.map(tag => ({ value: tag.id, label: tag.name }))
+                ]}
               />
             </Form.Item>
             
             <div style={{ fontSize: '12px', color: '#999', padding: '8px', background: '#f5f5f5', borderRadius: '4px' }}>
-              💡 提示：分类 ID 可在后台分类管理中查看，标签可使用名称或 ID
+              💡 提示：可以通过分类和标签快速筛选要展示的文章
             </div>
           </>
         )}

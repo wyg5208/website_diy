@@ -359,6 +359,48 @@ const PageEditor: React.FC = () => {
     );
   };
 
+  // 计算容器嵌套深度
+  // 返回值：0 = 顶层组件，1 = 第1层嵌套，2 = 第2层嵌套
+  const getContainerDepth = (componentId: string, componentList: PageComponent[]): number => {
+    for (const comp of componentList) {
+      if (comp.type === 'container' && comp.props.children) {
+        const children = comp.props.children as any[];
+        // 检查目标组件是否是此容器的直接子组件
+        const found = children.find((child) => child.id === componentId);
+        if (found) {
+          // 找到父容器，当前深度为1（因为目标组件在容器内）
+          return 1;
+        }
+        // 递归检查嵌套容器
+        for (const child of children) {
+          if (child.type === 'container' && child.props?.children) {
+            const depthInNested = getNestedDepth(componentId, child.props.children as any[]);
+            if (depthInNested > 0) {
+              return 1 + depthInNested;
+            }
+          }
+        }
+      }
+    }
+    return 0;
+  };
+
+  // 辅助函数：在嵌套容器中查找组件深度
+  const getNestedDepth = (componentId: string, children: any[]): number => {
+    for (const child of children) {
+      if (child.id === componentId) {
+        return 1;
+      }
+      if (child.type === 'container' && child.props?.children) {
+        const depth = getNestedDepth(componentId, child.props.children as any[]);
+        if (depth > 0) {
+          return 1 + depth;
+        }
+      }
+    }
+    return 0;
+  };
+
   // 保存到本地草稿
   const handleSave = () => {
     const pageData = {
@@ -733,14 +775,31 @@ const PageEditor: React.FC = () => {
         {/* 通用属性 */}
         {type === 'hero' && (
           <>
+            {/* 内容配置 */}
+            <div style={{ fontWeight: 600, color: '#1677ff', margin: '12px 0 8px', fontSize: 13 }}>内容配置</div>
             <Form.Item label="标题">
               <Input value={props.title} onChange={(e) => handlePropsChange('title', e.target.value)} />
             </Form.Item>
             <Form.Item label="副标题">
               <Input value={props.subtitle} onChange={(e) => handlePropsChange('subtitle', e.target.value)} />
             </Form.Item>
-            
+            <Form.Item label="高度 (px)">
+              <InputNumber value={props.height} onChange={(v) => handlePropsChange('height', v)} style={{ width: '100%' }} min={200} max={800} />
+            </Form.Item>
+            <Form.Item label="内容对齐">
+              <Select 
+                value={props.textAlign || 'center'} 
+                onChange={(v) => handlePropsChange('textAlign', v)} 
+                options={[
+                  { value: 'left', label: '左对齐' },
+                  { value: 'center', label: '居中对齐' },
+                  { value: 'right', label: '右对齐' },
+                ]} 
+              />
+            </Form.Item>
+
             {/* 背景配置 */}
+            <div style={{ fontWeight: 600, color: '#1677ff', margin: '16px 0 8px', fontSize: 13 }}>背景配置</div>
             <Form.Item label="背景图片">
               <ImagePicker
                 value={props.backgroundImage}
@@ -785,13 +844,182 @@ const PageEditor: React.FC = () => {
                 </Form.Item>
               </>
             )}
-            
-            <Form.Item label="高度 (px)">
-              <InputNumber value={props.height} onChange={(v) => handlePropsChange('height', v)} style={{ width: '100%' }} />
-            </Form.Item>
+
+            {/* 按钮配置 */}
+            <div style={{ fontWeight: 600, color: '#1677ff', margin: '16px 0 8px', fontSize: 13 }}>按钮配置</div>
             <Form.Item label="按钮文字">
-              <Input value={props.buttonText} onChange={(e) => handlePropsChange('buttonText', e.target.value)} placeholder="留空则不显示按钮" />
+              <Input 
+                value={props.buttonText} 
+                onChange={(e) => handlePropsChange('buttonText', e.target.value)} 
+                placeholder="留空则不显示按钮" 
+              />
             </Form.Item>
+            
+            {props.buttonText && (
+              <>
+                <Form.Item label="按钮图标">
+                  <Select 
+                    value={props.buttonIcon || ''} 
+                    onChange={(v) => handlePropsChange('buttonIcon', v)} 
+                    options={BUTTON_ICON_OPTIONS}
+                    allowClear
+                  />
+                </Form.Item>
+                {props.buttonIcon && (
+                  <Form.Item label="图标位置">
+                    <Select 
+                      value={props.buttonIconPosition || 'left'} 
+                      onChange={(v) => handlePropsChange('buttonIconPosition', v)} 
+                      options={[
+                        { value: 'left', label: '文字左侧' },
+                        { value: 'right', label: '文字右侧' },
+                      ]} 
+                    />
+                  </Form.Item>
+                )}
+                
+                <Form.Item label="按钮类型">
+                  <Select 
+                    value={props.buttonVariant || 'primary'} 
+                    onChange={(v) => handlePropsChange('buttonVariant', v)} 
+                    options={[
+                      { value: 'primary', label: '主要按钮（实心）' },
+                      { value: 'default', label: '默认按钮（白底）' },
+                      { value: 'dashed', label: '虚线按钮' },
+                      { value: 'text', label: '文字按钮' },
+                      { value: 'link', label: '链接按钮' },
+                    ]} 
+                  />
+                </Form.Item>
+                <Form.Item label="按钮尺寸">
+                  <Select 
+                    value={props.buttonSize || 'large'} 
+                    onChange={(v) => handlePropsChange('buttonSize', v)} 
+                    options={[
+                      { value: 'small', label: '小' },
+                      { value: 'middle', label: '中' },
+                      { value: 'large', label: '大' },
+                    ]} 
+                  />
+                </Form.Item>
+                <Form.Item label="幽灵模式">
+                  <Switch 
+                    checked={props.buttonGhost !== false} 
+                    onChange={(v) => handlePropsChange('buttonGhost', v)} 
+                  />
+                  <span style={{ color: '#999', fontSize: 12, marginLeft: 8 }}>透明背景，适合有背景图</span>
+                </Form.Item>
+                <Form.Item label="圆角大小">
+                  <InputNumber 
+                    value={props.buttonBorderRadius ?? 6} 
+                    onChange={(v) => handlePropsChange('buttonBorderRadius', v)} 
+                    min={0} 
+                    max={50}
+                    style={{ width: '100%' }} 
+                    addonAfter="px"
+                  />
+                </Form.Item>
+                <Form.Item label="显示阴影">
+                  <Switch 
+                    checked={props.buttonShadow || false} 
+                    onChange={(v) => handlePropsChange('buttonShadow', v)} 
+                  />
+                </Form.Item>
+                
+                {/* 自定义颜色 */}
+                <Form.Item label="背景颜色">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <ColorPicker 
+                      value={props.buttonBackgroundColor || undefined} 
+                      onChange={(color) => handlePropsChange('buttonBackgroundColor', color.toHexString())}
+                      showText
+                      allowClear
+                      onClear={() => handlePropsChange('buttonBackgroundColor', '')}
+                    />
+                    <span style={{ color: '#999', fontSize: 12 }}>留空使用默认</span>
+                  </div>
+                </Form.Item>
+                <Form.Item label="文字颜色">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <ColorPicker 
+                      value={props.buttonTextColor || undefined} 
+                      onChange={(color) => handlePropsChange('buttonTextColor', color.toHexString())}
+                      showText
+                      allowClear
+                      onClear={() => handlePropsChange('buttonTextColor', '')}
+                    />
+                    <span style={{ color: '#999', fontSize: 12 }}>留空使用默认</span>
+                  </div>
+                </Form.Item>
+                <Form.Item label="边框颜色">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <ColorPicker 
+                      value={props.buttonBorderColor || undefined} 
+                      onChange={(color) => handlePropsChange('buttonBorderColor', color.toHexString())}
+                      showText
+                      allowClear
+                      onClear={() => handlePropsChange('buttonBorderColor', '')}
+                    />
+                    <span style={{ color: '#999', fontSize: 12 }}>留空使用默认</span>
+                  </div>
+                </Form.Item>
+
+                {/* 链接配置 */}
+                <div style={{ fontWeight: 600, color: '#1677ff', margin: '16px 0 8px', fontSize: 13 }}>按钮链接</div>
+                <Form.Item label="链接类型">
+                  <Select 
+                    value={props.buttonLinkType || 'none'} 
+                    onChange={(v) => {
+                      handlePropsChange('buttonLinkType', v);
+                      if (v === 'home') {
+                        handlePropsChange('buttonLinkValue', '/');
+                      } else if (v === 'none') {
+                        handlePropsChange('buttonLinkValue', '');
+                      }
+                    }} 
+                    options={[
+                      { value: 'none', label: '无链接' },
+                      { value: 'home', label: '首页' },
+                      { value: 'page', label: '站内页面' },
+                      { value: 'url', label: '外部链接' },
+                    ]} 
+                  />
+                </Form.Item>
+                {props.buttonLinkType === 'page' && (
+                  <Form.Item label="选择页面">
+                    <Select 
+                      value={props.buttonLinkValue} 
+                      onChange={(v) => handlePropsChange('buttonLinkValue', v)} 
+                      placeholder="请选择目标页面"
+                      options={pageList.map(p => ({ value: p.key, label: p.title }))}
+                      showSearch
+                      filterOption={(input, option) => 
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                    />
+                  </Form.Item>
+                )}
+                {props.buttonLinkType === 'url' && (
+                  <Form.Item label="链接地址">
+                    <Input 
+                      value={props.buttonLinkValue} 
+                      onChange={(e) => handlePropsChange('buttonLinkValue', e.target.value)} 
+                      placeholder="https://example.com" 
+                    />
+                  </Form.Item>
+                )}
+                {props.buttonLinkType && props.buttonLinkType !== 'none' && (
+                  <Form.Item label="打开方式">
+                    <Switch 
+                      checked={props.buttonOpenInNewTab || false} 
+                      onChange={(v) => handlePropsChange('buttonOpenInNewTab', v)} 
+                      checkedChildren="新窗口"
+                      unCheckedChildren="当前页"
+                    />
+                  </Form.Item>
+                )}
+              </>
+            )}
           </>
         )}
 
@@ -1325,12 +1553,171 @@ const PageEditor: React.FC = () => {
                       />
                     </Form.Item>
                   )}
+                  {/* 嵌套容器编辑 */}
+                  {child.type === 'container' && (
+                    <Collapse ghost size="small" style={{ marginBottom: 8 }}>
+                      <Collapse.Panel header={`编辑嵌套容器 (${child.props?.children?.length || 0}个子组件)`} key="1">
+                        {/* 嵌套容器基础配置 */}
+                        <Form.Item label="布局" style={{ marginBottom: 8 }}>
+                          <Select 
+                            value={child.props?.layout || 'vertical'} 
+                            onChange={(v) => {
+                              const newChildren = [...(props.children || [])];
+                              newChildren[index] = { 
+                                ...newChildren[index], 
+                                props: { ...newChildren[index].props, layout: v } 
+                              };
+                              handlePropsChange('children', newChildren);
+                            }}
+                            options={[
+                              { value: 'vertical', label: '垂直排列' },
+                              { value: 'horizontal', label: '水平排列' },
+                              { value: 'grid', label: '网格布局' },
+                            ]}
+                          />
+                        </Form.Item>
+                        {(child.props?.layout === 'horizontal' || child.props?.layout === 'grid') && (
+                          <Form.Item label="列数" style={{ marginBottom: 8 }}>
+                            <Select 
+                              value={child.props?.columns || 3} 
+                              onChange={(v) => {
+                                const newChildren = [...(props.children || [])];
+                                newChildren[index] = { 
+                                  ...newChildren[index], 
+                                  props: { ...newChildren[index].props, columns: v } 
+                                };
+                                handlePropsChange('children', newChildren);
+                              }}
+                              options={[
+                                { value: 1, label: '1 列' },
+                                { value: 2, label: '2 列' },
+                                { value: 3, label: '3 列' },
+                                { value: 4, label: '4 列' },
+                              ]}
+                            />
+                          </Form.Item>
+                        )}
+                        {/* 嵌套容器的子组件列表 */}
+                        {child.props?.children?.map((nestedChild: any, nestedIndex: number) => (
+                          <Card key={nestedChild.id || nestedIndex} size="small" style={{ marginBottom: 8, background: '#fafafa' }}
+                            title={
+                              <span style={{ fontSize: 12 }}>
+                                {COMPONENT_LIST.find(c => c.type === nestedChild.type)?.label || nestedChild.type}
+                              </span>
+                            }
+                            extra={
+                              <Button type="link" size="small" danger onClick={() => {
+                                const newNestedChildren = (child.props?.children || []).filter((_: any, i: number) => i !== nestedIndex);
+                                const newChildren = [...(props.children || [])];
+                                newChildren[index] = { 
+                                  ...newChildren[index], 
+                                  props: { ...newChildren[index].props, children: newNestedChildren } 
+                                };
+                                handlePropsChange('children', newChildren);
+                              }}>删除</Button>
+                            }
+                          >
+                            {nestedChild.type === 'text' && (
+                              <Input.TextArea 
+                                rows={2}
+                                value={nestedChild.props?.content} 
+                                onChange={(e) => {
+                                  const newNestedChildren = [...(child.props?.children || [])];
+                                  newNestedChildren[nestedIndex] = { 
+                                    ...newNestedChildren[nestedIndex], 
+                                    props: { ...newNestedChildren[nestedIndex].props, content: e.target.value } 
+                                  };
+                                  const newChildren = [...(props.children || [])];
+                                  newChildren[index] = { 
+                                    ...newChildren[index], 
+                                    props: { ...newChildren[index].props, children: newNestedChildren } 
+                                  };
+                                  handlePropsChange('children', newChildren);
+                                }} 
+                              />
+                            )}
+                            {nestedChild.type === 'button' && (
+                              <Input 
+                                value={nestedChild.props?.text} 
+                                onChange={(e) => {
+                                  const newNestedChildren = [...(child.props?.children || [])];
+                                  newNestedChildren[nestedIndex] = { 
+                                    ...newNestedChildren[nestedIndex], 
+                                    props: { ...newNestedChildren[nestedIndex].props, text: e.target.value } 
+                                  };
+                                  const newChildren = [...(props.children || [])];
+                                  newChildren[index] = { 
+                                    ...newChildren[index], 
+                                    props: { ...newChildren[index].props, children: newNestedChildren } 
+                                  };
+                                  handlePropsChange('children', newChildren);
+                                }} 
+                              />
+                            )}
+                            {nestedChild.type === 'image' && (
+                              <ImagePicker
+                                value={nestedChild.props?.src}
+                                onChange={(url) => {
+                                  const newNestedChildren = [...(child.props?.children || [])];
+                                  newNestedChildren[nestedIndex] = { 
+                                    ...newNestedChildren[nestedIndex], 
+                                    props: { ...newNestedChildren[nestedIndex].props, src: url } 
+                                  };
+                                  const newChildren = [...(props.children || [])];
+                                  newChildren[index] = { 
+                                    ...newChildren[index], 
+                                    props: { ...newChildren[index].props, children: newNestedChildren } 
+                                  };
+                                  handlePropsChange('children', newChildren);
+                                }}
+                                placeholder="选择图片"
+                              />
+                            )}
+                          </Card>
+                        ))}
+                        {/* 添加嵌套子组件按钮 */}
+                        <Select
+                          placeholder="添加子组件"
+                          style={{ width: '100%', marginTop: 8 }}
+                          value={undefined}
+                          onChange={(nestedChildType: string) => {
+                            const config = COMPONENT_LIST.find((c) => c.type === nestedChildType);
+                            if (!config) return;
+                            const newNestedChild = {
+                              id: uuidv4(),
+                              type: nestedChildType,
+                              props: { ...config.defaultProps },
+                              span: 1,
+                            };
+                            const newNestedChildren = [...(child.props?.children || []), newNestedChild];
+                            const newChildren = [...(props.children || [])];
+                            newChildren[index] = { 
+                              ...newChildren[index], 
+                              props: { ...newChildren[index].props, children: newNestedChildren } 
+                            };
+                            handlePropsChange('children', newChildren);
+                          }}
+                          options={[
+                            { value: 'text', label: '文本块' },
+                            { value: 'image', label: '图片' },
+                            { value: 'button', label: '按钮' },
+                            { value: 'cards', label: '卡片列表' },
+                            { value: 'divider', label: '分割线' },
+                            // 嵌套容器内不能再添加容器（已达最大深度）
+                          ]}
+                        />
+                      </Collapse.Panel>
+                    </Collapse>
+                  )}
                 </Card>
               ))}
               
               {/* 添加子组件 */}
               <Select
-                placeholder="选择要添加的子组件"
+                placeholder={(() => {
+                  const depth = selectedComponent ? getContainerDepth(selectedComponent.id, components) : 0;
+                  return depth >= 1 ? '选择要添加的子组件（已达最大嵌套深度）' : '选择要添加的子组件';
+                })()}
                 style={{ width: '100%' }}
                 value={undefined}
                 onChange={(childType: string) => {
@@ -1345,13 +1732,23 @@ const PageEditor: React.FC = () => {
                   const newChildren = [...(props.children || []), newChild];
                   handlePropsChange('children', newChildren);
                 }}
-                options={[
-                  { value: 'text', label: '文本块' },
-                  { value: 'image', label: '图片' },
-                  { value: 'button', label: '按钮' },
-                  { value: 'cards', label: '卡片列表' },
-                  { value: 'divider', label: '分割线' },
-                ]}
+                options={(() => {
+                  // 最大嵌套深度为2层，第1层容器可以添加容器，第2层容器不能再添加容器
+                  const currentDepth = selectedComponent ? getContainerDepth(selectedComponent.id, components) : 0;
+                  const baseOptions = [
+                    { value: 'text', label: '文本块' },
+                    { value: 'image', label: '图片' },
+                    { value: 'button', label: '按钮' },
+                    { value: 'cards', label: '卡片列表' },
+                    { value: 'divider', label: '分割线' },
+                  ];
+                  // 如果当前容器是顶层容器（depth=0），可以添加嵌套容器
+                  if (currentDepth === 0) {
+                    return [...baseOptions, { value: 'container', label: '容器（嵌套）' }];
+                  }
+                  // 如果已经是嵌套容器（depth>=1），不能再添加容器
+                  return baseOptions;
+                })()}
               />
             </Form.Item>
           </>

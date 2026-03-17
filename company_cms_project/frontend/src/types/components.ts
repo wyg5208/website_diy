@@ -69,16 +69,35 @@ export interface BaseComponent {
 export interface HeroComponentData extends BaseComponent {
   type: 'hero';
   props: {
+    // 内容配置
     title: string;
     subtitle: string;
+    height?: number;
+    textAlign?: 'left' | 'center' | 'right';
+    
+    // 背景配置
     backgroundImage?: string;
     backgroundColor?: string;
     backgroundFit?: 'cover' | 'contain' | 'fill' | 'repeat';
     backgroundPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+    
+    // 按钮配置
     buttonText?: string;
-    buttonLink?: string;
-    height?: number;
-    textAlign?: 'left' | 'center' | 'right';
+    buttonIcon?: string;
+    buttonIconPosition?: 'left' | 'right';
+    buttonVariant?: 'primary' | 'default' | 'dashed' | 'text' | 'link';
+    buttonSize?: 'small' | 'middle' | 'large';
+    buttonGhost?: boolean;              // 幽灵按钮模式
+    buttonBackgroundColor?: string;
+    buttonTextColor?: string;
+    buttonBorderColor?: string;
+    buttonBorderRadius?: number;
+    buttonShadow?: boolean;
+    
+    // 按钮链接配置
+    buttonLinkType?: 'none' | 'home' | 'page' | 'url';
+    buttonLinkValue?: string;
+    buttonOpenInNewTab?: boolean;
   };
 }
 
@@ -247,13 +266,28 @@ export const COMPONENT_LIST: ComponentPanelItem[] = [
     label: '横幅大图',
     icon: 'PictureOutlined',
     defaultProps: {
+      // 内容配置
       title: '企业品牌标语',
       subtitle: '这里是副标题描述文字',
-      backgroundColor: '#1677ff',
       height: 400,
       textAlign: 'center',
+      // 背景配置
+      backgroundColor: '#1677ff',
       backgroundFit: 'cover',
       backgroundPosition: 'center',
+      // 按钮配置
+      buttonText: '',
+      buttonIcon: '',
+      buttonIconPosition: 'left',
+      buttonVariant: 'primary',
+      buttonSize: 'large',
+      buttonGhost: true,
+      buttonBorderRadius: 6,
+      buttonShadow: false,
+      // 按钮链接配置
+      buttonLinkType: 'none',
+      buttonLinkValue: '',
+      buttonOpenInNewTab: false,
     },
   },
   {

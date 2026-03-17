@@ -88,12 +88,14 @@ interface ComponentRendererProps {
 
 // Hero 横幅渲染
 const HeroRenderer: React.FC<{ props: any }> = ({ props }) => {
+  const navigate = useNavigate();
+  
   // 构建背景样式
   const backgroundStyle: React.CSSProperties = {
     height: props.height || 400,
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: props.textAlign === 'left' ? 'flex-start' : props.textAlign === 'right' ? 'flex-end' : 'center',
     justifyContent: 'center',
     textAlign: props.textAlign || 'center',
     color: '#fff',
@@ -149,6 +151,142 @@ const HeroRenderer: React.FC<{ props: any }> = ({ props }) => {
     backgroundStyle.background = props.backgroundColor || '#1677ff';
   }
 
+  // 构建按钮样式
+  const buildButtonStyle = (): React.CSSProperties => {
+    const style: React.CSSProperties = {};
+    
+    // 圆角
+    if (props.buttonBorderRadius !== undefined) {
+      style.borderRadius = props.buttonBorderRadius;
+    }
+    
+    // 阴影
+    if (props.buttonShadow) {
+      style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    }
+    
+    // 自定义颜色
+    if (props.buttonBackgroundColor) {
+      style.backgroundColor = props.buttonBackgroundColor;
+      if (!props.buttonBorderColor && props.buttonVariant !== 'text' && props.buttonVariant !== 'link') {
+        style.borderColor = props.buttonBackgroundColor;
+      }
+    }
+    if (props.buttonTextColor) {
+      style.color = props.buttonTextColor;
+    }
+    if (props.buttonBorderColor) {
+      style.borderColor = props.buttonBorderColor;
+    }
+    
+    return style;
+  };
+  
+  // 获取按钮图标
+  const getButtonIcon = (): React.ReactNode | undefined => {
+    if (!props.buttonIcon) return undefined;
+    const icon = BUTTON_ICON_MAP[props.buttonIcon];
+    if (!icon) return undefined;
+    if (props.buttonIconPosition === 'right') return undefined;
+    return icon;
+  };
+  
+  const getButtonRightIcon = (): React.ReactNode | undefined => {
+    if (!props.buttonIcon) return undefined;
+    const icon = BUTTON_ICON_MAP[props.buttonIcon];
+    if (!icon) return undefined;
+    if (props.buttonIconPosition === 'right') return icon;
+    return undefined;
+  };
+  
+  // 计算按钮链接地址
+  const getButtonLinkUrl = (): string | null => {
+    const linkType = props.buttonLinkType || 'none';
+    const linkValue = props.buttonLinkValue;
+    
+    switch (linkType) {
+      case 'home':
+        return '/';
+      case 'page':
+        return linkValue ? `/${linkValue}` : null;
+      case 'url':
+        return linkValue || null;
+      default:
+        return null;
+    }
+  };
+  
+  // 处理按钮点击
+  const handleButtonClick = () => {
+    const url = getButtonLinkUrl();
+    if (!url) return;
+    
+    const openInNewTab = props.buttonOpenInNewTab;
+    if (openInNewTab || props.buttonLinkType === 'url') {
+      window.open(url, openInNewTab ? '_blank' : '_self');
+    } else {
+      navigate(url);
+    }
+  };
+  
+  // 获取按钮类型
+  const getButtonType = (): 'primary' | 'default' | 'dashed' | 'text' | 'link' => {
+    return props.buttonVariant || 'primary';
+  };
+  
+  // 渲染按钮
+  const renderButton = () => {
+    if (!props.buttonText) return null;
+    
+    const linkUrl = getButtonLinkUrl();
+    const buttonContent = (
+      <>
+        {getButtonIcon()}
+        {props.buttonText}
+        {getButtonRightIcon()}
+      </>
+    );
+    
+    const buttonStyle = buildButtonStyle();
+    const isGhost = props.buttonGhost !== false; // 默认为幽灵模式
+    
+    // 如果有内部链接且不是新窗口打开，使用 Link 组件
+    if (linkUrl && props.buttonLinkType !== 'url' && !props.buttonOpenInNewTab) {
+      return (
+        <Link to={linkUrl} style={{ textDecoration: 'none' }}>
+          <Button
+            type={getButtonType()}
+            size={props.buttonSize || 'large'}
+            ghost={isGhost}
+            style={{ 
+              borderColor: isGhost ? '#fff' : undefined,
+              color: isGhost ? '#fff' : undefined,
+              ...buttonStyle 
+            }}
+          >
+            {buttonContent}
+          </Button>
+        </Link>
+      );
+    }
+    
+    return (
+      <Button
+        type={getButtonType()}
+        size={props.buttonSize || 'large'}
+        ghost={isGhost}
+        style={{ 
+          borderColor: isGhost ? '#fff' : undefined,
+          color: isGhost ? '#fff' : undefined,
+          ...buttonStyle 
+        }}
+        onClick={handleButtonClick}
+      >
+        {buttonContent}
+      </Button>
+    );
+  };
+
   return (
     <div style={backgroundStyle}>
       <h1 style={{ fontSize: '42px', fontWeight: 'bold', marginBottom: '16px', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
@@ -157,11 +295,7 @@ const HeroRenderer: React.FC<{ props: any }> = ({ props }) => {
       <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', marginBottom: '24px' }}>
         {props.subtitle || '副标题描述'}
       </p>
-      {props.buttonText && (
-        <Button type="primary" size="large" ghost style={{ borderColor: '#fff', color: '#fff' }}>
-          {props.buttonText}
-        </Button>
-      )}
+      {renderButton()}
     </div>
   );
 };

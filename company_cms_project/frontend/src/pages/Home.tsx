@@ -4,11 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getPosts } from '../api/posts';
 import { getHomePage } from '../api/pages';
 import { getMenus } from '../api/menus';
+import { getLogoConfig } from '../api/logo';
 import { ArrowRightOutlined, RocketOutlined, SafetyCertificateOutlined, TeamOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import ComponentRenderer from '../components/ComponentRenderer';
+import SiteFooter from '../components/SiteFooter';
 import type { PageComponent } from '../types/components';
 import type { MenuItem } from '../types/menu';
+import type { LogoConfig } from '../types/components';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { Header, Content, Footer } = Layout;
@@ -20,6 +23,7 @@ const Home: React.FC = () => {
   const [customComponents, setCustomComponents] = useState<PageComponent[]>([]);
   const [hasCustomPage, setHasCustomPage] = useState(false);
   const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [logoConfig, setLogoConfig] = useState<LogoConfig | null>(null);
   const navigate = useNavigate();
 
   // 加载菜单
@@ -35,6 +39,21 @@ const Home: React.FC = () => {
     loadMenus();
   }, []);
 
+  // 加载 LOGO 配置
+  useEffect(() => {
+    const loadLogoConfig = async () => {
+      try {
+        const res = await getLogoConfig();
+        if (res.code === 200 && res.data?.enabled) {
+          setLogoConfig(res.data);
+        }
+      } catch (error) {
+        console.error('Failed to load logo config:', error);
+      }
+    };
+    loadLogoConfig();
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -47,16 +66,17 @@ const Home: React.FC = () => {
         } else {
           // 如果没有自定义页面，加载文章列表
           const postsRes = await getPosts({ status: 'published', page: 1, per_page: 6 });
-          setPosts(postsRes.data.items);
+          setPosts(postsRes.data?.items || []);
         }
       } catch (error) {
         console.error('Failed to load data:', error);
         // 出错时也尝试加载文章
         try {
           const postsRes = await getPosts({ status: 'published', page: 1, per_page: 6 });
-          setPosts(postsRes.data.items);
+          setPosts(postsRes.data?.items || []);
         } catch (e) {
           console.error('Failed to fetch posts:', e);
+          setPosts([]); // 确保至少设置为空数组
         }
       } finally {
         setLoading(false);
@@ -83,11 +103,62 @@ const Home: React.FC = () => {
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
           borderBottom: '1px solid #f0f0f0'
         }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <div style={{ color: colors.primary, fontSize: '22px', fontWeight: '800', marginRight: '60px', letterSpacing: '1px' }}>
-              CORP<span style={{ color: colors.textPrimary }}>CMS</span>
-            </div>
-          </Link>
+          {/* LOGO 区域 */}
+          {logoConfig && logoConfig.enabled ? (
+            <Link to={logoConfig.linkUrl} style={{ textDecoration: 'none', marginRight: '60px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {/* 图片部分 */}
+                {(logoConfig.displayMode === 'textAndImage' || logoConfig.displayMode === 'imageOnly') && logoConfig.logoImage && (
+                  <img
+                    src={logoConfig.logoImage}
+                    alt="LOGO"
+                    style={{
+                      width: `${logoConfig.logoImageWidth}px`,
+                      height: `${logoConfig.logoImageHeight}px`,
+                      objectFit: 'contain',
+                      marginRight: logoConfig.displayMode === 'textAndImage' ? `${logoConfig.imageGap}px` : 0
+                    }}
+                  />
+                )}
+
+                {/* 文字部分 */}
+                {(logoConfig.displayMode === 'textAndImage' || logoConfig.displayMode === 'textOnly') && (
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                    <span
+                      style={{
+                        fontSize: `${logoConfig.fontSize}px`,
+                        color: logoConfig.textColor,
+                        fontWeight: logoConfig.fontWeight,
+                        letterSpacing: `${logoConfig.letterSpacing}px`
+                      }}
+                    >
+                      {logoConfig.logoText}
+                    </span>
+                    {logoConfig.logoSubText && (
+                      <span
+                        style={{
+                          fontSize: `${logoConfig.subFontSize}px`,
+                          color: logoConfig.subTextColor,
+                          fontWeight: logoConfig.fontWeight,
+                          marginLeft: '2px'
+                        }}
+                      >
+                        {logoConfig.logoSubText}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Link>
+          ) : (
+            /* 默认 LOGO */
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <div style={{ color: colors.primary, fontSize: '22px', fontWeight: '800', marginRight: '60px', letterSpacing: '1px' }}>
+                CORP<span style={{ color: colors.textPrimary }}>CMS</span>
+              </div>
+            </Link>
+          )}
+          
           <Menu
             mode="horizontal"
             selectedKeys={['home']}
@@ -178,7 +249,7 @@ const Home: React.FC = () => {
                   <Link to="/posts">查看全部资讯 <ArrowRightOutlined /></Link>
                 </div>
                 
-                {posts.length === 0 ? (
+                {(posts?.length ?? 0) === 0 ? (
                   <Empty description="暂无文章" />
                 ) : (
                   <Row gutter={[24, 24]}>
@@ -223,14 +294,7 @@ const Home: React.FC = () => {
           )}
         </Content>
 
-        <Footer style={{ textAlign: 'center', padding: '40px 0', background: colors.footerBg, color: 'rgba(255,255,255,0.45)' }}>
-          <Title level={5} style={{ color: '#fff', marginBottom: '20px' }}>CORPCMS 企业内容管理平台</Title>
-          <Paragraph style={{ color: 'rgba(255,255,255,0.45)' }}>
-            专业的 Python 后端与现代 React 前端技术栈，为您的企业品牌保驾护航
-          </Paragraph>
-          <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-          <div>©2026 Created by Qoder | 工业级解决方案</div>
-        </Footer>
+        <SiteFooter />
       </Layout>
   );
 };

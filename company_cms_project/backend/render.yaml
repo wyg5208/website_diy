@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: company-cms-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cms-db
+          property: connectionString
+      - key: UPLOAD_FOLDER
+        value: /tmp/media
+      - key: MAX_CONTENT_LENGTH
+        value: 52428800
+
+databases:
+  - name: cms-db
+    databaseName: company_cms
+    plan: free

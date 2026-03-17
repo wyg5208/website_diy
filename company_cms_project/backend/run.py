@@ -5,9 +5,20 @@ from app.models import User, Post, Category, Tag, Media, PageComponent
 # 创建应用实例
 app = create_app(os.getenv('FLASK_ENV', 'development'))
 
+
+@app.route('/api/health')
+def health_check():
+    """健康检查接口 - 用于 Render 等平台的健康检查"""
+    return {
+        'status': 'ok',
+        'message': 'CMS Backend is running',
+        'timestamp': __import__('datetime').datetime.utcnow().isoformat()
+    }
+
+
 @app.shell_context_processor
 def make_shell_context():
-    """Flask shell上下文"""
+    """Flask shell 上下文"""
     return {
         'db': db,
         'User': User,

@@ -25,8 +25,9 @@ class Config:
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', './media')
     MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', 50 * 1024 * 1024))  # 50MB
     
-    # 允许的文件扩展名
-    ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,gif,webp').split(','))
+    # 允许的文件扩展名（图片 + 视频 + 文档）
+    ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 
+        'png,jpg,jpeg,jfif,jfi,gif,webp,bmp,ico,svg,mp4,webm,pdf').split(','))
     
     # 分页配置
     POSTS_PER_PAGE = 20
@@ -36,7 +37,9 @@ class Config:
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:5173',  # Vite默认端口
-        'http://127.0.0.1:5173'
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',  # Vite实际端口
+        'http://127.0.0.1:5174'
     ]
 
 

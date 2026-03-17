@@ -10,6 +10,7 @@ class Post(db.Model):
     title = db.Column(db.String(255), nullable=False)
     slug = db.Column(db.String(255), unique=True, index=True)
     content = db.Column(db.Text)
+    content_format = db.Column(db.String(20), default='rich')  # rich:富文本，markdown:Markdown 格式
     excerpt = db.Column(db.Text)  # 摘要
     featured_image = db.Column(db.String(255))  # 特色图片
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -34,16 +35,26 @@ class Post(db.Model):
     
     def to_dict(self):
         """转换为字典"""
+        # 安全获取作者名称：处理作者不存在或display_name无效的情况
+        author_name = '未知用户'
+        if self.author:
+            # 检查 display_name 是否有效（非空且不全为问号）
+            if self.author.display_name and not all(c == '?' for c in self.author.display_name):
+                author_name = self.author.display_name
+            else:
+                author_name = self.author.username
+        
         return {
             'id': self.id,
             'type': self.type,
             'title': self.title,
             'slug': self.slug,
             'content': self.content,
+            'content_format': self.content_format,
             'excerpt': self.excerpt,
             'featured_image': self.featured_image,
             'author_id': self.author_id,
-            'author_name': self.author.display_name or self.author.username,
+            'author_name': author_name,
             'status': self.status,
             'comment_status': bool(self.comment_status),
             'is_sticky': bool(self.is_sticky),
@@ -228,20 +239,41 @@ class SiteSetting(db.Model):
     @staticmethod
     def set_value(key_name, value, description=None, group_name=None):
         """设置配置值"""
-        setting = SiteSetting.query.filter_by(key_name=key_name).first()
-        if setting:
-            setting.value = value
-            if description:
-                setting.description = description
-            if group_name:
-                setting.group_name = group_name
-        else:
-            setting = SiteSetting(
-                key_name=key_name,
-                value=value,
-                description=description,
-                group_name=group_name
-            )
-            db.session.add(setting)
-        db.session.commit()
-        return setting
+        try:
+            setting = SiteSetting.query.filter_by(key_name=key_name).first()
+            if setting:
+                setting.value = value
+                if description:
+                    setting.description = description
+                if group_name:
+                    setting.group_name = group_name
+            else:
+                setting = SiteSetting(
+                    key_name=key_name,
+                    value=value,
+                    description=description,
+                    group_name=group_name
+                )
+                db.session.add(setting)
+            
+            db.session.commit()
+            
+            # 在 close session 之前先提取需要的数据
+            result_data = {
+                'id': setting.id,
+                'key_name': setting.key_name,
+                'value': setting.value,
+                'type': setting.type,
+                'description': setting.description,
+                'group_name': setting.group_name,
+                'updated_at': setting.updated_at.isoformat() if setting.updated_at else None
+            }
+            
+            print(f"✓ SiteSetting.set_value: {key_name} 保存成功")
+            return result_data
+        except Exception as e:
+            print(f"✗ SiteSetting.set_value: {key_name} 保存失败 - {str(e)}")
+            db.session.rollback()
+            raise e
+        finally:
+            db.session.close()

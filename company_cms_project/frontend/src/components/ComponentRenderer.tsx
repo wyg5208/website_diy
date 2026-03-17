@@ -1,46 +1,170 @@
-import React from 'react';
-import { Button, Card, Input, Form, Row, Col, Divider, message } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Button, Card, Input, Form, Row, Col, Divider, message, Typography, Tag, Space, Skeleton, Empty, Pagination, Popconfirm } from 'antd';
 import type { PageComponent } from '../types/components';
+import { getPublicPosts } from '../api/posts';
+import { useNavigate, Link } from 'react-router-dom';
+import dayjs from 'dayjs';
+import { 
+  DeleteOutlined,
+  SearchOutlined,
+  RightOutlined,
+  LeftOutlined,
+  HomeOutlined,
+  LinkOutlined,
+  EnvironmentOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  SendOutlined,
+  DownloadOutlined,
+  PlayCircleOutlined,
+  HeartOutlined,
+  StarOutlined,
+  SettingOutlined,
+  UserOutlined,
+  TeamOutlined,
+  ShoppingCartOutlined,
+  CustomerServiceOutlined,
+  BellOutlined,
+  GiftOutlined,
+  CalendarOutlined,
+  CameraOutlined,
+  EditOutlined,
+  ShareAltOutlined,
+  LikeOutlined,
+  MessageOutlined,
+  QuestionCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  InfoCircleOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 
 const { TextArea } = Input;
+const { Title, Paragraph } = Typography;
+const { Meta } = Card;
+
+// 按钮图标映射
+const BUTTON_ICON_MAP: Record<string, React.ReactNode> = {
+  SearchOutlined: <SearchOutlined />,
+  RightOutlined: <RightOutlined />,
+  LeftOutlined: <LeftOutlined />,
+  HomeOutlined: <HomeOutlined />,
+  LinkOutlined: <LinkOutlined />,
+  EnvironmentOutlined: <EnvironmentOutlined />,
+  PhoneOutlined: <PhoneOutlined />,
+  MailOutlined: <MailOutlined />,
+  SendOutlined: <SendOutlined />,
+  DownloadOutlined: <DownloadOutlined />,
+  PlayCircleOutlined: <PlayCircleOutlined />,
+  HeartOutlined: <HeartOutlined />,
+  StarOutlined: <StarOutlined />,
+  SettingOutlined: <SettingOutlined />,
+  UserOutlined: <UserOutlined />,
+  TeamOutlined: <TeamOutlined />,
+  ShoppingCartOutlined: <ShoppingCartOutlined />,
+  CustomerServiceOutlined: <CustomerServiceOutlined />,
+  BellOutlined: <BellOutlined />,
+  GiftOutlined: <GiftOutlined />,
+  CalendarOutlined: <CalendarOutlined />,
+  CameraOutlined: <CameraOutlined />,
+  EditOutlined: <EditOutlined />,
+  ShareAltOutlined: <ShareAltOutlined />,
+  LikeOutlined: <LikeOutlined />,
+  MessageOutlined: <MessageOutlined />,
+  QuestionCircleOutlined: <QuestionCircleOutlined />,
+  CheckCircleOutlined: <CheckCircleOutlined />,
+  CloseCircleOutlined: <CloseCircleOutlined />,
+  InfoCircleOutlined: <InfoCircleOutlined />,
+  WarningOutlined: <WarningOutlined />,
+};
 
 interface ComponentRendererProps {
   component: PageComponent;
   isEditing?: boolean;
   onSelect?: () => void;
   isSelected?: boolean;
+  onDelete?: (componentId: string) => void;
 }
 
 // Hero 横幅渲染
-const HeroRenderer: React.FC<{ props: any }> = ({ props }) => (
-  <div
-    style={{
-      height: props.height || 400,
-      background: props.backgroundImage
-        ? `url(${props.backgroundImage}) center/cover`
-        : props.backgroundColor || '#1677ff',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      textAlign: props.textAlign || 'center',
-      color: '#fff',
-      padding: '40px 20px',
-    }}
-  >
-    <h1 style={{ fontSize: '42px', fontWeight: 'bold', marginBottom: '16px', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-      {props.title || '横幅标题'}
-    </h1>
-    <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', marginBottom: '24px' }}>
-      {props.subtitle || '副标题描述'}
-    </p>
-    {props.buttonText && (
-      <Button type="primary" size="large" ghost style={{ borderColor: '#fff', color: '#fff' }}>
-        {props.buttonText}
-      </Button>
-    )}
-  </div>
-);
+const HeroRenderer: React.FC<{ props: any }> = ({ props }) => {
+  // 构建背景样式
+  const backgroundStyle: React.CSSProperties = {
+    height: props.height || 400,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: props.textAlign || 'center',
+    color: '#fff',
+    padding: '40px 20px',
+  };
+
+  // 如果有背景图片，设置背景相关属性
+  if (props.backgroundImage) {
+    // 背景图片 URL
+    backgroundStyle.backgroundImage = `url(${props.backgroundImage})`;
+    
+    // 背景填充模式
+    switch (props.backgroundFit) {
+      case 'cover':
+        backgroundStyle.backgroundSize = 'cover';
+        break;
+      case 'contain':
+        backgroundStyle.backgroundSize = 'contain';
+        break;
+      case 'fill':
+        backgroundStyle.backgroundSize = '100% 100%';
+        break;
+      case 'repeat':
+        backgroundStyle.backgroundSize = 'auto';
+        backgroundStyle.backgroundRepeat = 'repeat';
+        break;
+      default:
+        backgroundStyle.backgroundSize = 'cover';
+    }
+    
+    // 背景位置
+    switch (props.backgroundPosition) {
+      case 'center':
+        backgroundStyle.backgroundPosition = 'center';
+        break;
+      case 'top':
+        backgroundStyle.backgroundPosition = 'center top';
+        break;
+      case 'bottom':
+        backgroundStyle.backgroundPosition = 'center bottom';
+        break;
+      case 'left':
+        backgroundStyle.backgroundPosition = 'left center';
+        break;
+      case 'right':
+        backgroundStyle.backgroundPosition = 'right center';
+        break;
+      default:
+        backgroundStyle.backgroundPosition = 'center';
+    }
+  } else {
+    // 没有背景图时使用背景色
+    backgroundStyle.background = props.backgroundColor || '#1677ff';
+  }
+
+  return (
+    <div style={backgroundStyle}>
+      <h1 style={{ fontSize: '42px', fontWeight: 'bold', marginBottom: '16px', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+        {props.title || '横幅标题'}
+      </h1>
+      <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', marginBottom: '24px' }}>
+        {props.subtitle || '副标题描述'}
+      </p>
+      {props.buttonText && (
+        <Button type="primary" size="large" ghost style={{ borderColor: '#fff', color: '#fff' }}>
+          {props.buttonText}
+        </Button>
+      )}
+    </div>
+  );
+};
 
 // 文本块渲染
 const TextRenderer: React.FC<{ props: any }> = ({ props }) => (
@@ -93,16 +217,151 @@ const ImageRenderer: React.FC<{ props: any }> = ({ props }) => (
 
 // 按钮渲染
 const ButtonRenderer: React.FC<{ props: any }> = ({ props }) => {
-  const buttonType = props.variant === 'outline' ? 'default' : props.variant || 'primary';
+  const navigate = useNavigate();
+  
+  // 获取按钮类型
+  const getButtonType = (): 'primary' | 'default' | 'dashed' | 'text' | 'link' => {
+    return props.variant || 'primary';
+  };
+  
+  // 构建按钮样式
+  const buildButtonStyle = (): React.CSSProperties => {
+    const style: React.CSSProperties = {};
+    
+    // 圆角
+    if (props.borderRadius !== undefined) {
+      style.borderRadius = props.borderRadius;
+    }
+    
+    // 阴影
+    if (props.shadow) {
+      style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    }
+    
+    // 自定义颜色
+    if (props.backgroundColor) {
+      style.backgroundColor = props.backgroundColor;
+      // 如果设置了背景色但没有边框颜色，使用背景色作为边框色
+      if (!props.borderColor && props.variant !== 'text' && props.variant !== 'link') {
+        style.borderColor = props.backgroundColor;
+      }
+    }
+    if (props.textColor) {
+      style.color = props.textColor;
+    }
+    if (props.borderColor) {
+      style.borderColor = props.borderColor;
+    }
+    
+    // 宽度设置
+    if (props.widthType === 'full') {
+      style.width = '100%';
+    } else if (props.widthType === 'fixed' && props.customWidth) {
+      style.width = props.customWidth;
+    }
+    
+    return style;
+  };
+  
+  // 获取图标
+  const getIcon = (): React.ReactNode | undefined => {
+    if (!props.icon) return undefined;
+    const icon = BUTTON_ICON_MAP[props.icon];
+    if (!icon) return undefined;
+    
+    // 如果图标在右侧，返回 undefined，稍后处理
+    if (props.iconPosition === 'right') return undefined;
+    return icon;
+  };
+  
+  // 获取右侧图标
+  const getRightIcon = (): React.ReactNode | undefined => {
+    if (!props.icon) return undefined;
+    const icon = BUTTON_ICON_MAP[props.icon];
+    if (!icon) return undefined;
+    
+    if (props.iconPosition === 'right') return icon;
+    return undefined;
+  };
+  
+  // 计算链接地址
+  const getLinkUrl = (): string | null => {
+    const linkType = props.linkType || 'none';
+    const linkValue = props.linkValue;
+    
+    switch (linkType) {
+      case 'home':
+        return '/';
+      case 'page':
+        return linkValue ? `/${linkValue}` : null;
+      case 'url':
+        return linkValue || null;
+      default:
+        return null;
+    }
+  };
+  
+  // 处理按钮点击
+  const handleClick = () => {
+    const url = getLinkUrl();
+    if (!url) return;
+    
+    // 根据配置决定打开方式
+    const openInNewTab = props.openInNewTab;
+    if (openInNewTab || props.linkType === 'url') {
+      window.open(url, openInNewTab ? '_blank' : '_self');
+    } else {
+      // 内部链接使用路由导航
+      navigate(url);
+    }
+  };
+  
+  // 构建容器样式
+  const containerStyle: React.CSSProperties = {
+    padding: `${props.padding ?? 16}px 16px`,
+    textAlign: props.align || 'center',
+  };
+  
+  // 构建按钮内容
+  const buttonContent = (
+    <>
+      {getIcon()}
+      {props.text || '按钮'}
+      {getRightIcon()}
+    </>
+  );
+  
+  const linkUrl = getLinkUrl();
+  const isBlock = props.widthType === 'full';
+  
+  // 如果有内部链接且不是新窗口打开，使用 Link 组件包裹
+  if (linkUrl && props.linkType !== 'url' && !props.openInNewTab) {
+    return (
+      <div style={containerStyle}>
+        <Link to={linkUrl} style={{ textDecoration: 'none' }}>
+          <Button
+            type={getButtonType()}
+            size={props.size || 'middle'}
+            block={isBlock}
+            style={buildButtonStyle()}
+          >
+            {buttonContent}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+  
   return (
-    <div style={{ padding: '16px', textAlign: 'center' }}>
+    <div style={containerStyle}>
       <Button
-        type={buttonType}
+        type={getButtonType()}
         size={props.size || 'middle'}
-        block={props.block}
-        style={props.variant === 'outline' ? { borderStyle: 'solid' } : {}}
+        block={isBlock}
+        style={buildButtonStyle()}
+        onClick={handleClick}
       >
-        {props.text || '按钮'}
+        {buttonContent}
       </Button>
     </div>
   );
@@ -231,8 +490,186 @@ const DividerRenderer: React.FC<{ props: any }> = ({ props }) => (
   />
 );
 
+// 文章列表渲染
+const ArticlesRenderer: React.FC<{ component: PageComponent }> = ({ component }) => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+
+  // 安全地获取 props，使用类型断言
+  const props = component.props as any;
+  const categoryId = props?.categoryId;
+  const tagId = props?.tagId;
+  const limit = props?.limit || 10;
+  const showPagination = props?.showPagination ?? true;
+  const displayMode = props?.displayMode || 'list';
+  const showTitle = props?.showTitle ?? false;
+  const sectionTitle = props?.sectionTitle || '最新文章';
+
+  useEffect(() => {
+    fetchArticles();
+  }, [page, categoryId, tagId]);
+
+  const fetchArticles = async () => {
+    setLoading(true);
+    try {
+      const params: any = {
+        page,
+        per_page: limit
+      };
+      
+      if (categoryId) {
+        params.category_id = categoryId;
+      }
+      
+      if (tagId) {
+        params.tag_id = tagId;
+      }
+
+      const res = await getPublicPosts(params);
+      setArticles(res.data.items);
+      setTotal(res.data.pagination.total);
+    } catch (error) {
+      console.error('Failed to fetch articles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  return (
+    <div style={{ padding: displayMode === 'grid' ? '24px' : '0' }}>
+      {/* 标题区域 */}
+      {showTitle && (
+        <div style={{ marginBottom: 24, textAlign: 'center' }}>
+          <Title level={2}>{sectionTitle}</Title>
+        </div>
+      )}
+
+      {loading ? (
+        <Skeleton active paragraph={{ rows: 4 }} />
+      ) : articles.length === 0 ? (
+        <Empty description="暂无文章" />
+      ) : (
+        <>
+          {displayMode === 'grid' ? (
+            // 网格模式
+            <Row gutter={[24, 24]}>
+              {articles.map((article) => (
+                <Col span={24} key={article.id}>
+                  <Card
+                    hoverable
+                    onClick={() => navigate(`/post/${article.id}`)}
+                    style={{ borderRadius: '8px' }}
+                  >
+                    <Meta
+                      title={
+                        <Title level={4} style={{ margin: 0 }}>
+                          {article.title}
+                        </Title>
+                      }
+                      description={
+                        <>
+                          <Space style={{ marginBottom: 8 }}>
+                            <span>作者：{article.author_name}</span>
+                            <span>·</span>
+                            <span>{dayjs(article.published_at).format('YYYY-MM-DD')}</span>
+                            <span>·</span>
+                            <span>浏览：{article.view_count}</span>
+                          </Space>
+                          
+                          {/* 分类和标签 */}
+                          <Space wrap style={{ marginBottom: 8 }}>
+                            {article.categories && article.categories.map((cat: any) => (
+                              <Tag key={cat.id} color="blue">{cat.name}</Tag>
+                            ))}
+                            {article.tags && article.tags.map((tag: any) => (
+                              <Tag key={tag.id}>{tag.name}</Tag>
+                            ))}
+                          </Space>
+
+                          {/* 摘要 */}
+                          {article.excerpt && (
+                            <Paragraph ellipsis={{ rows: 2 }} style={{ margin: 0 }}>
+                              {article.excerpt}
+                            </Paragraph>
+                          )}
+                        </>
+                      }
+                    />
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          ) : (
+            // 列表模式
+            <div>
+              {articles.map((article) => (
+                <Card
+                  key={article.id}
+                  hoverable
+                  onClick={() => navigate(`/post/${article.id}`)}
+                  style={{ marginBottom: 16, borderRadius: '8px', cursor: 'pointer' }}
+                >
+                  <Meta
+                    title={<Title level={4} style={{ margin: 0 }}>{article.title}</Title>}
+                    description={
+                      <Space direction="vertical" style={{ width: '100%', marginTop: 8 }}>
+                        <Space>
+                          <span>作者：{article.author_name}</span>
+                          <Divider type="vertical" />
+                          <span>{dayjs(article.published_at).format('YYYY-MM-DD')}</span>
+                          <Divider type="vertical" />
+                          <span>浏览：{article.view_count}</span>
+                        </Space>
+                        
+                        {/* 分类和标签 */}
+                        <Space wrap>
+                          {article.categories && article.categories.map((cat: any) => (
+                            <Tag key={cat.id} color="blue">{cat.name}</Tag>
+                          ))}
+                          {article.tags && article.tags.map((tag: any) => (
+                            <Tag key={tag.id}>{tag.name}</Tag>
+                          ))}
+                        </Space>
+
+                        {/* 摘要 */}
+                        {article.excerpt && (
+                          <Paragraph ellipsis={{ rows: 2 }} style={{ margin: 0 }}>
+                            {article.excerpt}
+                          </Paragraph>
+                        )}
+                      </Space>
+                    }
+                  />
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {showPagination && total > limit && (
+            <Pagination
+              current={page}
+              total={total}
+              pageSize={limit}
+              onChange={handlePageChange}
+              style={{ marginTop: 24, textAlign: 'center' }}
+              showSizeChanger={false}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 // 组件类型到渲染器的映射
-const RENDERER_MAP: Record<string, React.FC<{ props: any }>> = {
+const RENDERER_MAP: Record<string, React.FC<any>> = {
   hero: HeroRenderer,
   text: TextRenderer,
   image: ImageRenderer,
@@ -241,6 +678,7 @@ const RENDERER_MAP: Record<string, React.FC<{ props: any }>> = {
   form: FormRenderer,
   cards: CardsRenderer,
   divider: DividerRenderer,
+  articles: ArticlesRenderer,
 };
 
 // 主组件渲染器
@@ -249,11 +687,17 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   isEditing = false,
   onSelect,
   isSelected = false,
+  onDelete,
 }) => {
   const Renderer = RENDERER_MAP[component.type];
 
   if (!Renderer) {
-    return <div style={{ padding: 16, color: '#999' }}>未知组件类型: {component.type}</div>;
+    return <div style={{ padding: 16, color: '#999' }}>未知组件类型：{component.type}</div>;
+  }
+
+  // 文章列表组件特殊处理
+  if (component.type === 'articles') {
+    return <Renderer component={component} />;
   }
 
   if (isEditing) {
@@ -279,21 +723,50 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         }}
       >
         {isSelected && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -10,
-              left: 10,
-              background: '#1677ff',
-              color: '#fff',
-              padding: '2px 8px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              zIndex: 10,
-            }}
-          >
-            {component.type}
-          </div>
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                top: -10,
+                left: 10,
+                background: '#1677ff',
+                color: '#fff',
+                padding: '2px 8px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                zIndex: 10,
+              }}
+            >
+              {component.type}
+            </div>
+            {onDelete && (
+              <Popconfirm
+                title="删除组件"
+                description="确定要删除此组件吗？"
+                onConfirm={(e) => {
+                  e?.stopPropagation();
+                  onDelete(component.id);
+                }}
+                okText="确定"
+                cancelText="取消"
+                getPopupContainer={() => document.body}
+              >
+                <Button
+                  type="primary"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    right: '10px',
+                    zIndex: 11,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Popconfirm>
+            )}
+          </>
         )}
         <Renderer props={component.props} />
       </div>

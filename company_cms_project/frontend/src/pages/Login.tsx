@@ -11,15 +11,30 @@ const Login: React.FC = () => {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
+      console.log('登录请求参数:', values);
       const res = await login(values);
+      console.log('登录响应:', res);
+      console.log('res.code:', res.code);
+      console.log('res.data:', res.data);
+      
       if (res.code === 200) {
         message.success('登录成功');
+        // res.data 就是后端返回的 data 对象
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         navigate('/admin/dashboard');
+      } else {
+        message.error(res.message || '登录失败');
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('登录错误:', error);
+      if (error.response) {
+        console.error('错误响应状态:', error.response.status);
+        console.error('错误响应数据:', error.response.data);
+        message.error(error.response.data?.message || '登录失败');
+      } else {
+        message.error('网络错误或服务器无响应');
+      }
     } finally {
       setLoading(false);
     }

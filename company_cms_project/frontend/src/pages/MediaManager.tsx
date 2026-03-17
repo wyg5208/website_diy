@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Upload, Modal, List, Card, Button, message, Typography, Space, Empty, Spin } from 'antd';
-import { PlusOutlined, DeleteOutlined, EyeOutlined, InboxOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EyeOutlined, InboxOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
-import request from '../utils/request';
+import request, { handleLoginExpired } from '../utils/request';
+import type { RcFile } from 'antd/es/upload/interface';
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
@@ -11,8 +12,9 @@ const MediaManager: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [mediaList, setMediaList] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
   const [previewTitle, setPreviewTitle] = useState('');
+  const [previewType, setPreviewType] = useState<'image' | 'video'>('image');
 
   const fetchMedia = async () => {
     setLoading(true);
@@ -33,7 +35,11 @@ const MediaManager: React.FC = () => {
   const handleCancel = () => setPreviewOpen(false);
 
   const handlePreview = (item: any) => {
-    setPreviewImage(`http://127.0.0.1:5000${item.file_url}`);
+    const url = `http://127.0.0.1:5000${item.file_url}`;
+    setPreviewUrl(url);
+    // 根据 mime_type 判断类型
+    const isVideo = item.mime_type?.startsWith('video/');
+    setPreviewType(isVideo ? 'video' : 'image');
     setPreviewOpen(true);
     setPreviewTitle(item.original_name || item.filename);
   };
@@ -57,17 +63,42 @@ const MediaManager: React.FC = () => {
   const uploadProps: UploadProps = {
     name: 'file',
     multiple: true,
-    action: 'http://127.0.0.1:5000/api/v1/media/upload',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    onChange(info) {
-      const { status } = info.file;
-      if (status === 'done') {
-        message.success(`${info.file.name} 上传成功`);
-        fetchMedia();
-      } else if (status === 'error') {
-        message.error(`${info.file.name} 上传失败`);
+    accept: 'image/png,image/jpeg,image/jfif,image/gif,image/webp,image/bmp,image/svg+xml,video/mp4,video/webm,application/pdf',
+    showUploadList: false,
+    customRequest: async (options) => {
+      const { file, onSuccess, onError } = options;
+      const formData = new FormData();
+      formData.append('file', file as RcFile);
+      
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://127.0.0.1:5000/api/v1/media/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+        
+        const result = await response.json();
+        
+        if (response.status === 401 || result.code === 401) {
+          handleLoginExpired();
+          onError?.(new Error('登录已过期'));
+          return;
+        }
+        
+        if (response.ok && result.code === 201) {
+          onSuccess?.(result);
+          message.success(`${(file as RcFile).name} 上传成功`);
+          fetchMedia();
+        } else {
+          onError?.(new Error(result.message || '上传失败'));
+          message.error(result.message || `${(file as RcFile).name} 上传失败`);
+        }
+      } catch (error) {
+        onError?.(error as Error);
+        message.error(`${(file as RcFile).name} 上传失败`);
       }
     },
   };
@@ -102,11 +133,19 @@ const MediaManager: React.FC = () => {
                   hoverable
                   cover={
                     <div style={{ height: 150, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
-                      <img
-                        alt={item.filename}
-                        src={`http://127.0.0.1:5000${item.file_url}`}
-                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      />
+                      {item.mime_type?.startsWith('video/') ? (
+                        <video
+                          src={`http://127.0.0.1:5000${item.file_url}`}
+                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          alt={item.filename}
+                          src={`http://127.0.0.1:5000${item.file_url}`}
+                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                        />
+                      )}
                     </div>
                   }
                   actions={[
@@ -128,7 +167,16 @@ const MediaManager: React.FC = () => {
       </Spin>
 
       <Modal open={previewOpen} title={previewTitle} footer={null} onCancel={handleCancel} width={800}>
-        <img alt="example" style={{ width: '100%' }} src={previewImage} />
+        {previewType === 'video' ? (
+          <video
+            src={previewUrl}
+            style={{ width: '100%' }}
+            controls
+            autoPlay
+          />
+        ) : (
+          <img alt="preview" style={{ width: '100%' }} src={previewUrl} />
+        )}
       </Modal>
     </div>
   );

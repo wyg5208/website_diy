@@ -7,11 +7,35 @@ from datetime import datetime
 import re
 
 def slugify(text):
-    """生成slug"""
-    # 简单的中文转拼音和处理（实际项目中建议使用pypinyin库）
+    """生成 slug"""
+    # 简单的中文转拼音和处理（实际项目中建议使用 pypinyin 库）
     text = re.sub(r'[^\w\s-]', '', text.lower())
     text = re.sub(r'[-\s]+', '-', text)
     return text.strip('-')
+
+
+@api_bp.route('/posts/categories-tags', methods=['GET'])
+@jwt_required()
+def get_categories_and_tags():
+    """获取所有分类和标签（供编辑器使用）"""
+    try:
+        categories = Category.query.order_by(Category.sort_order, Category.created_at).all()
+        tags = Tag.query.order_by(Tag.created_at.desc()).all()
+        
+        return jsonify({
+            'code': 200,
+            'message': '获取成功',
+            'data': {
+                'categories': [cat.to_dict() for cat in categories],
+                'tags': [tag.to_dict() for tag in tags]
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'code': 500,
+            'message': f'获取分类和标签失败：{str(e)}'
+        }), 500
 
 @api_bp.route('/posts', methods=['GET'])
 def get_posts():
@@ -32,11 +56,11 @@ def get_posts():
         if status:
             query = query.filter_by(status=status)
         
-        # 分类过滤
+        # 分类过滤（支持多个分类）
         if category_id:
             query = query.join(Post.categories).filter(Category.id == category_id)
         
-        # 标签过滤
+        # 标签过滤（支持多个标签）
         if tag_id:
             query = query.join(Post.tags).filter(Tag.id == tag_id)
         
@@ -71,17 +95,74 @@ def get_posts():
     except Exception as e:
         return jsonify({
             'code': 500,
-            'message': f'获取文章列表失败: {str(e)}'
+            'message': f'获取文章列表失败：{str(e)}'
         }), 500
 
 
-@api_bp.route('/posts/<int:id>', methods=['GET'])
-def get_post(id):
-    """获取文章详情"""
+@api_bp.route('/posts/public', methods=['GET'])
+def get_public_posts():
+    """获取公开文章列表（无需认证，供前台使用）"""
+    try:
+        # 获取查询参数
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        category_id = request.args.get('category_id', type=int)
+        tag_id = request.args.get('tag_id', type=int)
+        search = request.args.get('search', '').strip()
+        
+        # 构建查询（只查询已发布的文章）
+        query = Post.query.filter_by(status='published')
+        
+        # 分类过滤
+        if category_id:
+            query = query.join(Post.categories).filter(Category.id == category_id)
+        
+        # 标签过滤
+        if tag_id:
+            query = query.join(Post.tags).filter(Tag.id == tag_id)
+        
+        # 搜索
+        if search:
+            query = query.filter(
+                Post.title.contains(search) | 
+                Post.content.contains(search)
+            )
+        
+        # 分页
+        pagination = query.order_by(Post.published_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        posts = pagination.items
+        
+        return jsonify({
+            'code': 200,
+            'message': '获取成功',
+            'data': {
+                'items': [post.to_dict() for post in posts],
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': pagination.total,
+                    'pages': pagination.pages
+                }
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'code': 500,
+            'message': f'获取文章列表失败：{str(e)}'
+        }), 500
+
+
+@api_bp.route('/posts/public/<int:id>', methods=['GET'])
+def get_public_post(id):
+    """获取公开文章详情（无需认证，供前台使用）"""
     try:
         post = Post.query.get_or_404(id)
         
-        # 只有已发布的文章或作者自己可以查看
+        # 只允许查看已发布的文章
         if post.status != 'published':
             return jsonify({
                 'code': 403,
@@ -101,7 +182,41 @@ def get_post(id):
     except Exception as e:
         return jsonify({
             'code': 500,
-            'message': f'获取文章失败: {str(e)}'
+            'message': f'获取文章失败：{str(e)}'
+        }), 500
+
+
+@api_bp.route('/posts/<int:id>', methods=['GET'])
+@jwt_required(optional=True)
+def get_post(id):
+    """获取文章详情（需要认证，可查看草稿）"""
+    try:
+        current_user_id = get_jwt_identity()
+        post = Post.query.get_or_404(id)
+        
+        # 检查权限：已发布的文章任何人都可以查看，未发布的只有作者或管理员可以查看
+        if post.status != 'published':
+            if not current_user_id or (post.author_id != current_user_id and User.query.get(current_user_id).username != 'admin'):
+                return jsonify({
+                    'code': 403,
+                    'message': '无权查看此文章'
+                }), 403
+        
+        # 增加浏览次数（仅已发布文章）
+        if post.status == 'published':
+            post.view_count += 1
+            db.session.commit()
+        
+        return jsonify({
+            'code': 200,
+            'message': '获取成功',
+            'data': post.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'code': 500,
+            'message': f'获取文章失败：{str(e)}'
         }), 500
 
 
@@ -113,16 +228,38 @@ def create_post():
         current_user_id = get_jwt_identity()
         data = request.get_json()
         
+        # 检查数据是否为空
+        if not data:
+            return jsonify({
+                'code': 400,
+                'message': '请求数据为空'
+            }), 400
+        
+        # 调试日志
+        print(f"[DEBUG] 创建文章 - 用户 ID: {current_user_id}")
+        print(f"[DEBUG] 接收到的数据：{data}")
+        
         # 参数校验
-        title = data.get('title', '').strip()
-        content = data.get('content', '').strip()
+        title = data.get('title', '').strip() if data.get('title') else ''
+        content = data.get('content', '').strip() if data.get('content') else ''
+        content_format = data.get('content_format', 'rich')  # rich 或 markdown
         type_ = data.get('type', 'post')  # post or page
         status = data.get('status', 'draft')
         
+        print(f"[DEBUG] 标题：{title}, 内容长度：{len(content) if content else 0}, 格式：{content_format}")
+        
         if not title:
+            print("[DEBUG] 标题为空，返回错误")
             return jsonify({
                 'code': 400,
                 'message': '标题不能为空'
+            }), 400
+        
+        if content_format not in ['rich', 'markdown']:
+            print(f"[DEBUG] 不支持的内容格式：{content_format}")
+            return jsonify({
+                'code': 400,
+                'message': '不支持的内容格式'
             }), 400
         
         # 生成slug
@@ -139,6 +276,7 @@ def create_post():
             title=title,
             slug=slug,
             content=content,
+            content_format=content_format,
             type=type_,
             status=status,
             author_id=current_user_id,
@@ -220,6 +358,14 @@ def update_post(id):
         
         if 'content' in data:
             post.content = data['content'].strip()
+        
+        if 'content_format' in data:
+            if data['content_format'] not in ['rich', 'markdown']:
+                return jsonify({
+                    'code': 400,
+                    'message': '不支持的内容格式'
+                }), 400
+            post.content_format = data['content_format']
         
         if 'excerpt' in data:
             post.excerpt = data['excerpt'].strip()

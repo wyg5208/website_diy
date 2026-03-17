@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Space, message, Select, Switch, Divider, Row, Col } from 'antd';
+import { Form, Input, Button, Card, Space, message, Select, Switch, Divider, Row, Col, Radio, Tabs } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getPost, createPost, updatePost } from '../api/posts';
+import { getPost, createPost, updatePost, getCategoriesAndTags } from '../api/posts';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import MDEditor from '@uiw/react-md-editor';
+import ReactMarkdown from 'react-markdown';
 
 const PostEditor: React.FC = () => {
   const [form] = Form.useForm();
@@ -11,6 +13,9 @@ const PostEditor: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
+  const [contentFormat, setContentFormat] = useState('rich'); // 'rich' or 'markdown'
+  const [categories, setCategories] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
 
   // Quill 编辑器配置
   const modules = {
@@ -24,11 +29,26 @@ const PostEditor: React.FC = () => {
   };
 
   useEffect(() => {
+    // 加载分类和标签
+    const fetchCategoriesAndTags = async () => {
+      try {
+        const res = await getCategoriesAndTags();
+        setCategories(res.data.categories);
+        setTags(res.data.tags);
+      } catch (error) {
+        console.error('Failed to fetch categories and tags:', error);
+      }
+    };
+    fetchCategoriesAndTags();
+
     if (isEdit) {
       const fetchData = async () => {
         try {
           const res = await getPost(Number(id));
           form.setFieldsValue(res.data);
+          if (res.data.content_format) {
+            setContentFormat(res.data.content_format);
+          }
         } catch (error) {
           console.error(error);
         }
@@ -40,16 +60,40 @@ const PostEditor: React.FC = () => {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
+      console.log('准备保存文章，数据:', values);
+      
       if (isEdit) {
+        console.log('更新文章 ID:', id);
         await updatePost(Number(id), values);
         message.success('更新成功');
       } else {
+        console.log('创建新文章，状态:', values.status);
         await createPost(values);
         message.success('创建成功');
       }
+      // 返回列表页
       navigate('/admin/posts');
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('保存失败:', error);
+      
+      // 显示详细错误信息
+      let errorMsg = '操作失败，请重试';
+      
+      if (error.response?.data) {
+        // API 返回的错误
+        console.error('API 响应错误:', error.response.data);
+        errorMsg = error.response.data.message || error.response.data.msg || errorMsg;
+        
+        // 如果是 validation 错误，显示详细信息
+        if (error.response.status === 400) {
+          errorMsg = error.response.data.message || '参数验证失败';
+        }
+      } else if (error.message) {
+        // 网络错误或其他错误
+        errorMsg = error.message;
+      }
+      
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -61,8 +105,26 @@ const PostEditor: React.FC = () => {
         <h2 style={{ margin: 0 }}>{isEdit ? '编辑文章' : '撰写新文章'}</h2>
         <Space>
           <Button onClick={() => navigate('/admin/posts')}>返回列表</Button>
-          <Button type="primary" onClick={() => form.submit()} loading={loading}>
+          <Button 
+            type="primary" 
+            onClick={() => {
+              // 如果是新建，默认发布；如果是编辑，保持当前状态
+              if (!isEdit) {
+                form.setFieldsValue({ status: 'published' });
+              }
+              form.submit();
+            }} 
+            loading={loading}
+          >
             {isEdit ? '保存修改' : '立即发布'}
+          </Button>
+          <Button 
+            onClick={() => {
+              form.setFieldsValue({ status: 'draft' });
+              form.submit();
+            }}
+          >
+            存为草稿
           </Button>
         </Space>
       </div>
@@ -71,7 +133,7 @@ const PostEditor: React.FC = () => {
         form={form}
         layout="vertical"
         onFinish={onFinish}
-        initialValues={{ status: 'draft', comment_status: true }}
+        initialValues={{ status: 'published', comment_status: true, content_format: 'rich' }}
       >
         <Row gutter={24}>
           {/* 左侧编辑器 */}
@@ -85,13 +147,31 @@ const PostEditor: React.FC = () => {
                 <Input.TextArea rows={2} placeholder="输入一段简短的摘要（可选）" />
               </Form.Item>
 
+              <Form.Item label="内容格式">
+                <Radio.Group value={contentFormat} onChange={(e) => setContentFormat(e.target.value)}>
+                  <Radio value="rich">富文本编辑器</Radio>
+                  <Radio value="markdown">Markdown 编辑器</Radio>
+                </Radio.Group>
+              </Form.Item>
+
               <Form.Item name="content" label="正文内容" rules={[{ required: true, message: '请输入正文内容' }]}>
-                <ReactQuill 
-                  theme="snow" 
-                  modules={modules}
-                  style={{ height: '500px', marginBottom: '50px' }} 
-                  placeholder="在这里开始您的创作..."
-                />
+                {contentFormat === 'rich' ? (
+                  <ReactQuill 
+                    theme="snow" 
+                    modules={modules}
+                    style={{ height: '500px', marginBottom: '50px' }} 
+                    placeholder="在这里开始您的创作..."
+                  />
+                ) : (
+                  <div data-color-mode="light">
+                    <MDEditor
+                      value={form.getFieldValue('content')}
+                      onChange={(value) => form.setFieldsValue({ content: value })}
+                      height={500}
+                      preview="edit"
+                    />
+                  </div>
+                )}
               </Form.Item>
             </Card>
           </Col>
@@ -112,6 +192,34 @@ const PostEditor: React.FC = () => {
               <Divider />
               <Form.Item name="comment_status" label="允许读者评论" valuePropName="checked">
                 <Switch />
+              </Form.Item>
+            </Card>
+
+            <Card title="分类" bordered={false} style={{ marginBottom: 24 }}>
+              <Form.Item name="category_ids">
+                <Select
+                  mode="multiple"
+                  placeholder="选择分类"
+                  style={{ width: '100%' }}
+                  options={categories.map(cat => ({
+                    value: cat.id,
+                    label: cat.name
+                  }))}
+                />
+              </Form.Item>
+            </Card>
+
+            <Card title="标签" bordered={false} style={{ marginBottom: 24 }}>
+              <Form.Item name="tag_names">
+                <Select
+                  mode="tags"
+                  placeholder="输入或选择标签"
+                  style={{ width: '100%' }}
+                  options={tags.map(tag => ({
+                    value: tag.name,
+                    label: tag.name
+                  }))}
+                />
               </Form.Item>
             </Card>
 

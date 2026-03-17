@@ -69,6 +69,8 @@ const AdminLayout: React.FC = () => {
       label: '系统设置',
       children: [
         { key: '/admin/theme', icon: <BgColorsOutlined />, label: '主题设置' },
+        { key: '/admin/logo-config', icon: <PictureOutlined />, label: 'LOGO 配置' },
+        { key: '/admin/footer-config', icon: <SettingOutlined />, label: '底栏配置' },
       ],
     },
   ];

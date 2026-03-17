@@ -38,3 +38,25 @@ export const deletePost = (id: number): Promise<ApiResponse> => {
     method: 'delete',
   });
 };
+
+export const getCategoriesAndTags = (): Promise<ApiResponse> => {
+  return request({
+    url: '/posts/categories-tags',
+    method: 'get',
+  });
+};
+
+export const getPublicPosts = (params: any): Promise<ApiResponse> => {
+  return request({
+    url: '/posts/public',
+    method: 'get',
+    params,
+  });
+};
+
+export const getPublicPost = (id: number): Promise<ApiResponse> => {
+  return request({
+    url: `/posts/public/${id}`,
+    method: 'get',
+  });
+};

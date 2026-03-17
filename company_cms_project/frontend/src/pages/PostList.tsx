@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Typography, Tag, Modal, message } from 'antd';
+import React, { useEffect, useState, useRef } from 'react';
+import { Table, Button, Space, Typography, Tag, Modal, message, Select, Row, Col, Card } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { getPosts, deletePost } from '../api/posts';
+import { getPosts, deletePost, getCategoriesAndTags } from '../api/posts';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -12,22 +12,53 @@ const PostList: React.FC = () => {
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [params, setParams] = useState({ page: 1, per_page: 10 });
+  const [categories, setCategories] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+  const [filters, setFilters] = useState({ category_id: undefined, tag_id: undefined });
   const navigate = useNavigate();
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await getPosts(params);
+      const queryParams = { ...params, ...filters };
+      console.log('获取文章列表，参数:', queryParams);
+      const res = await getPosts(queryParams);
+      console.log('文章列表响应:', res.data);
       setData(res.data.items);
       setTotal(res.data.pagination.total);
     } catch (error) {
-      console.error(error);
+      console.error('获取文章列表失败:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // 加载分类和标签
+    const fetchCategoriesAndTags = async () => {
+      try {
+        const res = await getCategoriesAndTags();
+        setCategories(res.data.categories);
+        setTags(res.data.tags);
+      } catch (error) {
+        console.error('Failed to fetch categories and tags:', error);
+      }
+    };
+    fetchCategoriesAndTags();
+    
+    fetchData();
+  }, []); // 只在挂载时执行一次
+
+  useEffect(() => {
+    // 当 params 或 filters 改变时，重新加载数据
+    if (filters.category_id !== undefined || filters.tag_id !== undefined || params.page !== 1) {
+      setParams({ ...params, page: 1 });
+      fetchData();
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    // params 变化时刷新（分页、排序等）
     fetchData();
   }, [params]);
 
@@ -94,6 +125,48 @@ const PostList: React.FC = () => {
           新建文章
         </Button>
       </div>
+
+      {/* 筛选区域 */}
+      <Card bordered={false} style={{ marginBottom: 16 }}>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Select
+              placeholder="按分类筛选"
+              allowClear
+              style={{ width: '100%' }}
+              onChange={(value) => setFilters({ ...filters, category_id: value })}
+              options={categories.map(cat => ({
+                value: cat.id,
+                label: cat.name
+              }))}
+            />
+          </Col>
+          <Col span={8}>
+            <Select
+              placeholder="按标签筛选"
+              allowClear
+              style={{ width: '100%' }}
+              onChange={(value) => setFilters({ ...filters, tag_id: value })}
+              options={tags.map(tag => ({
+                value: tag.name,
+                label: tag.name
+              }))}
+            />
+          </Col>
+          <Col span={8}>
+            <Button 
+              block 
+              onClick={() => {
+                setFilters({ category_id: undefined, tag_id: undefined });
+                setParams({ page: 1, per_page: 10 });
+              }}
+            >
+              重置筛选
+            </Button>
+          </Col>
+        </Row>
+      </Card>
+
       <Table
         columns={columns}
         dataSource={data}

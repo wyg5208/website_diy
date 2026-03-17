@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Menu, Typography, Button, Space, Spin, Empty, Result } from 'antd';
+import { Layout, Menu, Typography, Button, Space, Spin, Result } from 'antd';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getPageConfig } from '../api/pages';
 import { getMenus } from '../api/menus';
+import { getLogoConfig } from '../api/logo';
 import ComponentRenderer from '../components/ComponentRenderer';
+import SiteFooter from '../components/SiteFooter';
 import type { PageComponent } from '../types/components';
 import type { MenuItem } from '../types/menu';
+import type { LogoConfig } from '../types/components';
 import { useTheme } from '../contexts/ThemeContext';
 
-const { Header, Content, Footer } = Layout;
-const { Title, Paragraph } = Typography;
+const { Header, Content } = Layout;
+
 
 interface DynamicPageProps {
   pageKey: string;
@@ -20,6 +23,7 @@ const DynamicPage: React.FC<DynamicPageProps> = ({ pageKey }) => {
   const [components, setComponents] = useState<PageComponent[]>([]);
   const [pageTitle, setPageTitle] = useState('');
   const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [logoConfig, setLogoConfig] = useState<LogoConfig | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { currentTheme } = useTheme();
@@ -36,6 +40,21 @@ const DynamicPage: React.FC<DynamicPageProps> = ({ pageKey }) => {
       }
     };
     loadMenus();
+  }, []);
+
+  // 加载 LOGO 配置
+  useEffect(() => {
+    const loadLogoConfig = async () => {
+      try {
+        const res = await getLogoConfig();
+        if (res.code === 200 && res.data?.enabled) {
+          setLogoConfig(res.data);
+        }
+      } catch (error) {
+        console.error('Failed to load logo config:', error);
+      }
+    };
+    loadLogoConfig();
   }, []);
 
   // 加载页面内容
@@ -78,11 +97,62 @@ const DynamicPage: React.FC<DynamicPageProps> = ({ pageKey }) => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         borderBottom: '1px solid #f0f0f0'
       }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <div style={{ color: colors.primary, fontSize: '22px', fontWeight: '800', marginRight: '60px', letterSpacing: '1px' }}>
-            CORP<span style={{ color: colors.textPrimary }}>CMS</span>
-          </div>
-        </Link>
+        {/* LOGO 区域 */}
+        {logoConfig && logoConfig.enabled ? (
+          <Link to={logoConfig.linkUrl} style={{ textDecoration: 'none', marginRight: '60px' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {/* 图片部分 */}
+              {(logoConfig.displayMode === 'textAndImage' || logoConfig.displayMode === 'imageOnly') && logoConfig.logoImage && (
+                <img
+                  src={logoConfig.logoImage}
+                  alt="LOGO"
+                  style={{
+                    width: `${logoConfig.logoImageWidth}px`,
+                    height: `${logoConfig.logoImageHeight}px`,
+                    objectFit: 'contain',
+                    marginRight: logoConfig.displayMode === 'textAndImage' ? `${logoConfig.imageGap}px` : 0
+                  }}
+                />
+              )}
+
+              {/* 文字部分 */}
+              {(logoConfig.displayMode === 'textAndImage' || logoConfig.displayMode === 'textOnly') && (
+                <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                  <span
+                    style={{
+                      fontSize: `${logoConfig.fontSize}px`,
+                      color: logoConfig.textColor,
+                      fontWeight: logoConfig.fontWeight,
+                      letterSpacing: `${logoConfig.letterSpacing}px`
+                    }}
+                  >
+                    {logoConfig.logoText}
+                  </span>
+                  {logoConfig.logoSubText && (
+                    <span
+                      style={{
+                        fontSize: `${logoConfig.subFontSize}px`,
+                        color: logoConfig.subTextColor,
+                        fontWeight: logoConfig.fontWeight,
+                        marginLeft: '2px'
+                      }}
+                    >
+                      {logoConfig.logoSubText}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </Link>
+        ) : (
+          /* 默认 LOGO */
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <div style={{ color: colors.primary, fontSize: '22px', fontWeight: '800', marginRight: '60px', letterSpacing: '1px' }}>
+              CORP<span style={{ color: colors.textPrimary }}>CMS</span>
+            </div>
+          </Link>
+        )}
+        
         <Menu
           mode="horizontal"
           selectedKeys={[selectedKey]}
@@ -116,24 +186,25 @@ const DynamicPage: React.FC<DynamicPageProps> = ({ pageKey }) => {
             title={pageTitle || '页面建设中'}
             subTitle="此页面内容正在建设中，请稍后访问"
             extra={
-              <Button type="primary" onClick={() => navigate('/')}>
-                返回首页
-              </Button>
+              <Space>
+                <Button type="primary" onClick={() => navigate('/')}>
+                  返回首页
+                </Button>
+                {localStorage.getItem('token') && (
+                  <Button 
+                    onClick={() => navigate(`/admin/pages/editor?page=${pageKey}`)}
+                  >
+                    立即编辑此页面
+                  </Button>
+                )}
+              </Space>
             }
             style={{ padding: '100px 0' }}
           />
         )}
       </Content>
 
-      <Footer style={{ textAlign: 'center', padding: '40px 0', background: colors.footerBg, color: 'rgba(255,255,255,0.45)' }}>
-        <Title level={5} style={{ color: '#fff', marginBottom: '20px' }}>CORPCMS 企业内容管理平台</Title>
-        <Paragraph style={{ color: 'rgba(255,255,255,0.45)' }}>
-          专业的 Python 后端与现代 React 前端技术栈，为您的企业品牌保驾护航
-        </Paragraph>
-        <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16 }}>
-          ©2026 Created by Qoder | 工业级解决方案
-        </div>
-      </Footer>
+        <SiteFooter />
     </Layout>
   );
 };

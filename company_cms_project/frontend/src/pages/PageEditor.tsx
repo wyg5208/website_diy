@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Card, Button, Space, message, Empty, Input, Form, Select, InputNumber, Switch, ColorPicker, Modal, Flex, Spin } from 'antd';
+import { Layout, Card, Button, Space, message, Empty, Input, Form, Select, InputNumber, Switch, ColorPicker, Modal, Flex, Spin, Collapse, Divider } from 'antd';
 import {
   PictureOutlined,
   FontSizeOutlined,
@@ -19,6 +19,37 @@ import {
   ClearOutlined,
   CloudUploadOutlined,
   FileOutlined,
+  SearchOutlined,
+  RightOutlined,
+  LeftOutlined,
+  HomeOutlined,
+  LinkOutlined,
+  EnvironmentOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  SendOutlined,
+  DownloadOutlined,
+  PlayCircleOutlined,
+  HeartOutlined,
+  StarOutlined,
+  SettingOutlined,
+  UserOutlined,
+  TeamOutlined,
+  ShoppingCartOutlined,
+  CustomerServiceOutlined,
+  BellOutlined,
+  GiftOutlined,
+  CalendarOutlined,
+  CameraOutlined,
+  EditOutlined,
+  ShareAltOutlined,
+  LikeOutlined,
+  MessageOutlined,
+  QuestionCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  InfoCircleOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -27,6 +58,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import { v4 as uuidv4 } from 'uuid';
 import ComponentRenderer from '../components/ComponentRenderer';
+import ImagePicker from '../components/ImagePicker';
 import { COMPONENT_LIST, type PageComponent, type ComponentType } from '../types/components';
 import { savePageConfig, getPageConfig } from '../api/pages';
 import { getEditablePages } from '../api/menus';
@@ -45,13 +77,85 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   LineOutlined: <LineOutlined />,
 };
 
+// 按钮图标选项
+const BUTTON_ICON_OPTIONS = [
+  { value: '', label: '无图标' },
+  { value: 'SearchOutlined', label: '搜索' },
+  { value: 'RightOutlined', label: '右箭头' },
+  { value: 'LeftOutlined', label: '左箭头' },
+  { value: 'HomeOutlined', label: '首页' },
+  { value: 'LinkOutlined', label: '链接' },
+  { value: 'EnvironmentOutlined', label: '位置' },
+  { value: 'PhoneOutlined', label: '电话' },
+  { value: 'MailOutlined', label: '邮件' },
+  { value: 'SendOutlined', label: '发送' },
+  { value: 'DownloadOutlined', label: '下载' },
+  { value: 'PlayCircleOutlined', label: '播放' },
+  { value: 'HeartOutlined', label: '爱心' },
+  { value: 'StarOutlined', label: '星标' },
+  { value: 'SettingOutlined', label: '设置' },
+  { value: 'UserOutlined', label: '用户' },
+  { value: 'TeamOutlined', label: '团队' },
+  { value: 'ShoppingCartOutlined', label: '购物车' },
+  { value: 'CustomerServiceOutlined', label: '客服' },
+  { value: 'BellOutlined', label: '通知' },
+  { value: 'GiftOutlined', label: '礼物' },
+  { value: 'CalendarOutlined', label: '日历' },
+  { value: 'CameraOutlined', label: '相机' },
+  { value: 'EditOutlined', label: '编辑' },
+  { value: 'ShareAltOutlined', label: '分享' },
+  { value: 'LikeOutlined', label: '点赞' },
+  { value: 'MessageOutlined', label: '消息' },
+  { value: 'QuestionCircleOutlined', label: '帮助' },
+  { value: 'CheckCircleOutlined', label: '成功' },
+  { value: 'CloseCircleOutlined', label: '关闭' },
+  { value: 'InfoCircleOutlined', label: '信息' },
+  { value: 'WarningOutlined', label: '警告' },
+];
+
+// 按钮图标组件映射
+const BUTTON_ICON_MAP: Record<string, React.ReactNode> = {
+  SearchOutlined: <SearchOutlined />,
+  RightOutlined: <RightOutlined />,
+  LeftOutlined: <LeftOutlined />,
+  HomeOutlined: <HomeOutlined />,
+  LinkOutlined: <LinkOutlined />,
+  EnvironmentOutlined: <EnvironmentOutlined />,
+  PhoneOutlined: <PhoneOutlined />,
+  MailOutlined: <MailOutlined />,
+  SendOutlined: <SendOutlined />,
+  DownloadOutlined: <DownloadOutlined />,
+  PlayCircleOutlined: <PlayCircleOutlined />,
+  HeartOutlined: <HeartOutlined />,
+  StarOutlined: <StarOutlined />,
+  SettingOutlined: <SettingOutlined />,
+  UserOutlined: <UserOutlined />,
+  TeamOutlined: <TeamOutlined />,
+  ShoppingCartOutlined: <ShoppingCartOutlined />,
+  CustomerServiceOutlined: <CustomerServiceOutlined />,
+  BellOutlined: <BellOutlined />,
+  GiftOutlined: <GiftOutlined />,
+  CalendarOutlined: <CalendarOutlined />,
+  CameraOutlined: <CameraOutlined />,
+  EditOutlined: <EditOutlined />,
+  ShareAltOutlined: <ShareAltOutlined />,
+  LikeOutlined: <LikeOutlined />,
+  MessageOutlined: <MessageOutlined />,
+  QuestionCircleOutlined: <QuestionCircleOutlined />,
+  CheckCircleOutlined: <CheckCircleOutlined />,
+  CloseCircleOutlined: <CloseCircleOutlined />,
+  InfoCircleOutlined: <InfoCircleOutlined />,
+  WarningOutlined: <WarningOutlined />,
+};
+
 // 可排序组件包装器
 const SortableItem: React.FC<{
   id: string;
   component: PageComponent;
   isSelected: boolean;
   onSelect: () => void;
-}> = ({ id, component, isSelected, onSelect }) => {
+  onDelete: (componentId: string) => void;
+}> = ({ id, component, isSelected, onSelect, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
   const style = {
@@ -77,6 +181,8 @@ const SortableItem: React.FC<{
         component={component}
         isEditing={true}
         isSelected={isSelected}
+        onSelect={onSelect}
+        onDelete={onDelete}
       />
     </div>
   );
@@ -165,14 +271,26 @@ const PageEditor: React.FC = () => {
           // 新页面，清空内容
           setComponents([]);
           const pageInfo = pageList.find(p => p.key === currentPageKey);
-          setPageName(pageInfo?.title || currentPageKey);
+          // 为特定页面设置默认名称
+          const defaultNames: Record<string, string> = {
+            'solutions': '解决方案',
+            'cases': '成功案例',
+            'about': '关于我们'
+          };
+          setPageName(defaultNames[currentPageKey] || pageInfo?.title || currentPageKey);
           setTemplateId(null);
         }
       } catch (e) {
         // 页面不存在，初始化为空
         setComponents([]);
         const pageInfo = pageList.find(p => p.key === currentPageKey);
-        setPageName(pageInfo?.title || currentPageKey);
+        // 为特定页面设置默认名称
+        const defaultNames: Record<string, string> = {
+          'solutions': '解决方案',
+          'cases': '成功案例',
+          'about': '关于我们'
+        };
+        setPageName(defaultNames[currentPageKey] || pageInfo?.title || currentPageKey);
         setTemplateId(null);
       } finally {
         setLoading(false);
@@ -324,6 +442,271 @@ const PageEditor: React.FC = () => {
     }
   };
 
+  // 使用预设模板
+  const handleUseTemplate = (templateType: 'solutions' | 'cases' | 'about') => {
+    if (components.length > 0) {
+      Modal.confirm({
+        title: '使用模板',
+        content: '使用模板将覆盖当前页面内容，是否继续？',
+        onOk: () => applyTemplate(templateType),
+      });
+    } else {
+      applyTemplate(templateType);
+    }
+  };
+
+  // 应用模板
+  const applyTemplate = (templateType: 'solutions' | 'cases' | 'about') => {
+    let newComponents: PageComponent[] = [];
+    
+    switch (templateType) {
+      case 'solutions':
+        newComponents = [
+          {
+            id: uuidv4(),
+            type: 'hero',
+            props: {
+              title: '我们的解决方案',
+              subtitle: '专业、高效、创新的技术服务，助力企业数字化转型',
+              backgroundColor: '#1677ff',
+              height: 400,
+              buttonText: '了解更多',
+              textAlign: 'center'
+            }
+          },
+          {
+            id: uuidv4(),
+            type: 'container',
+            props: {
+              backgroundColor: '#fff',
+              padding: 48,
+              layout: 'grid',
+              columns: 3,
+              gap: 24,
+              children: [
+                {
+                  id: uuidv4(),
+                  type: 'text',
+                  props: {
+                    content: '技术服务',
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    textAlign: 'center',
+                    padding: 16
+                  },
+                  span: 3
+                },
+                {
+                  id: uuidv4(),
+                  type: 'cards',
+                  props: {
+                    columns: 3,
+                    items: [
+                      {
+                        title: '网站开发',
+                        description: '定制化网站开发，响应式设计，SEO优化'
+                      },
+                      {
+                        title: '移动应用',
+                        description: 'iOS/Android原生应用及跨平台解决方案'
+                      },
+                      {
+                        title: '系统集成',
+                        description: '企业级系统集成，API开发与对接'
+                      }
+                    ]
+                  },
+                  span: 3
+                }
+              ]
+            }
+          }
+        ];
+        break;
+        
+      case 'cases':
+        newComponents = [
+          {
+            id: uuidv4(),
+            type: 'hero',
+            props: {
+              title: '成功案例',
+              subtitle: '见证我们为客户创造的价值与成果',
+              backgroundColor: '#52c41a',
+              height: 400,
+              buttonText: '',
+              textAlign: 'center'
+            }
+          },
+          {
+            id: uuidv4(),
+            type: 'container',
+            props: {
+              backgroundColor: '#fff',
+              padding: 48,
+              layout: 'vertical',
+              gap: 32,
+              children: [
+                {
+                  id: uuidv4(),
+                  type: 'text',
+                  props: {
+                    content: '精选案例',
+                    fontSize: 32,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    textAlign: 'center',
+                    padding: 16
+                  },
+                  span: 1
+                },
+                {
+                  id: uuidv4(),
+                  type: 'cards',
+                  props: {
+                    columns: 3,
+                    items: [
+                      {
+                        title: '电商平台建设项目',
+                        description: '为某零售企业打造的全渠道电商系统，提升销售额300%'
+                      },
+                      {
+                        title: '企业管理系统',
+                        description: '定制化ERP系统，优化业务流程，提高运营效率'
+                      },
+                      {
+                        title: '移动办公应用',
+                        description: '跨平台移动办公解决方案，提升团队协作效率'
+                      }
+                    ]
+                  },
+                  span: 1
+                }
+              ]
+            }
+          }
+        ];
+        break;
+        
+      case 'about':
+        newComponents = [
+          {
+            id: uuidv4(),
+            type: 'hero',
+            props: {
+              title: '关于我们',
+              subtitle: '专注技术创新，致力于为客户提供优质的产品与服务',
+              backgroundColor: '#722ed1',
+              height: 400,
+              buttonText: '',
+              textAlign: 'center'
+            }
+          },
+          {
+            id: uuidv4(),
+            type: 'container',
+            props: {
+              backgroundColor: '#fff',
+              padding: 48,
+              layout: 'horizontal',
+              columns: 2,
+              gap: 48,
+              alignItems: 'flex-start',
+              children: [
+                {
+                  id: uuidv4(),
+                  type: 'text',
+                  props: {
+                    content: '公司简介\n\n我们是一家专注于企业级软件开发的技术公司，拥有多年的行业经验和技术积累。团队成员来自知名互联网公司，具备丰富的项目实战经验。\n\n我们的使命是通过技术创新帮助企业实现数字化转型，提升竞争力。',
+                    fontSize: 16,
+                    fontWeight: 'normal',
+                    color: '#666',
+                    textAlign: 'left',
+                    padding: 0
+                  },
+                  span: 1
+                },
+                {
+                  id: uuidv4(),
+                  type: 'image',
+                  props: {
+                    src: '',
+                    alt: '公司团队',
+                    width: '100%',
+                    height: '300px',
+                    objectFit: 'cover',
+                    borderRadius: 8
+                  },
+                  span: 1
+                }
+              ]
+            }
+          },
+          {
+            id: uuidv4(),
+            type: 'container',
+            props: {
+              backgroundColor: '#fafafa',
+              padding: 48,
+              layout: 'vertical',
+              gap: 32,
+              children: [
+                {
+                  id: uuidv4(),
+                  type: 'text',
+                  props: {
+                    content: '核心优势',
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    textAlign: 'center',
+                    padding: 16
+                  },
+                  span: 1
+                },
+                {
+                  id: uuidv4(),
+                  type: 'cards',
+                  props: {
+                    columns: 4,
+                    items: [
+                      {
+                        title: '技术实力',
+                        description: '资深技术团队，掌握前沿技术栈'
+                      },
+                      {
+                        title: '项目经验',
+                        description: '丰富的行业项目实施经验'
+                      },
+                      {
+                        title: '服务质量',
+                        description: '全程跟踪服务，确保项目成功'
+                      },
+                      {
+                        title: '持续支持',
+                        description: '完善的售后支持体系'
+                      }
+                    ]
+                  },
+                  span: 1
+                }
+              ]
+            }
+          }
+        ];
+        break;
+    }
+    
+    setComponents(newComponents);
+    setSelectedId(null);
+    message.success(`${{
+      'solutions': '解决方案',
+      'cases': '成功案例',
+      'about': '关于我们'
+    }[templateType]}模板已应用！`);
+  };
+
   // 跳转到模板选择页
   const handleSelectTemplate = () => {
     if (components.length > 0) {
@@ -356,9 +739,53 @@ const PageEditor: React.FC = () => {
             <Form.Item label="副标题">
               <Input value={props.subtitle} onChange={(e) => handlePropsChange('subtitle', e.target.value)} />
             </Form.Item>
-            <Form.Item label="背景色">
-              <ColorPicker value={props.backgroundColor} onChange={(c) => handlePropsChange('backgroundColor', c.toHexString())} />
+            
+            {/* 背景配置 */}
+            <Form.Item label="背景图片">
+              <ImagePicker
+                value={props.backgroundImage}
+                onChange={(url) => handlePropsChange('backgroundImage', url)}
+                placeholder="选择背景图片"
+              />
             </Form.Item>
+            
+            {!props.backgroundImage && (
+              <Form.Item label="背景色">
+                <ColorPicker value={props.backgroundColor} onChange={(c) => handlePropsChange('backgroundColor', c.toHexString())} />
+              </Form.Item>
+            )}
+            
+            {props.backgroundImage && (
+              <>
+                <Form.Item label="图片填充模式">
+                  <Select 
+                    value={props.backgroundFit || 'cover'} 
+                    onChange={(v) => handlePropsChange('backgroundFit', v)} 
+                    options={[
+                      { value: 'cover', label: '覆盖填充 (Cover)' },
+                      { value: 'contain', label: '完整显示 (Contain)' },
+                      { value: 'fill', label: '拉伸填充 (Fill)' },
+                      { value: 'repeat', label: '平铺重复 (Repeat)' },
+                    ]} 
+                  />
+                </Form.Item>
+                
+                <Form.Item label="图片位置">
+                  <Select 
+                    value={props.backgroundPosition || 'center'} 
+                    onChange={(v) => handlePropsChange('backgroundPosition', v)} 
+                    options={[
+                      { value: 'center', label: '居中' },
+                      { value: 'top', label: '顶部' },
+                      { value: 'bottom', label: '底部' },
+                      { value: 'left', label: '左侧' },
+                      { value: 'right', label: '右侧' },
+                    ]} 
+                  />
+                </Form.Item>
+              </>
+            )}
+            
             <Form.Item label="高度 (px)">
               <InputNumber value={props.height} onChange={(v) => handlePropsChange('height', v)} style={{ width: '100%' }} />
             </Form.Item>
@@ -400,8 +827,12 @@ const PageEditor: React.FC = () => {
 
         {type === 'image' && (
           <>
-            <Form.Item label="图片地址">
-              <Input value={props.src} onChange={(e) => handlePropsChange('src', e.target.value)} placeholder="输入图片 URL" />
+            <Form.Item label="图片来源">
+              <ImagePicker
+                value={props.src}
+                onChange={(url) => handlePropsChange('src', url)}
+                placeholder="选择图片"
+              />
             </Form.Item>
             <Form.Item label="图片描述">
               <Input value={props.alt} onChange={(e) => handlePropsChange('alt', e.target.value)} placeholder="输入图片描述文字" />
@@ -427,29 +858,196 @@ const PageEditor: React.FC = () => {
 
         {type === 'button' && (
           <>
+            {/* 基础配置 */}
+            <div style={{ fontWeight: 600, color: '#1677ff', margin: '12px 0 8px', fontSize: 13 }}>基础配置</div>
             <Form.Item label="按钮文字">
-              <Input value={props.text} onChange={(e) => handlePropsChange('text', e.target.value)} />
+              <Input value={props.text} onChange={(e) => handlePropsChange('text', e.target.value)} placeholder="输入按钮文字" />
             </Form.Item>
-            <Form.Item label="链接地址">
-              <Input value={props.link} onChange={(e) => handlePropsChange('link', e.target.value)} placeholder="点击跳转的 URL" />
+            <Form.Item label="按钮图标">
+              <Select 
+                value={props.icon || ''} 
+                onChange={(v) => handlePropsChange('icon', v)} 
+                options={BUTTON_ICON_OPTIONS}
+                allowClear
+              />
             </Form.Item>
-            <Form.Item label="样式">
-              <Select value={props.variant} onChange={(v) => handlePropsChange('variant', v)} options={[
-                { value: 'primary', label: '主要按钮' },
-                { value: 'default', label: '默认按钮' },
-                { value: 'outline', label: '边框按钮' },
+            {props.icon && (
+              <Form.Item label="图标位置">
+                <Select 
+                  value={props.iconPosition || 'left'} 
+                  onChange={(v) => handlePropsChange('iconPosition', v)} 
+                  options={[
+                    { value: 'left', label: '文字左侧' },
+                    { value: 'right', label: '文字右侧' },
+                  ]} 
+                />
+              </Form.Item>
+            )}
+
+            {/* 样式配置 */}
+            <div style={{ fontWeight: 600, color: '#1677ff', margin: '16px 0 8px', fontSize: 13 }}>样式配置</div>
+            <Form.Item label="按钮类型">
+              <Select value={props.variant || 'primary'} onChange={(v) => handlePropsChange('variant', v)} options={[
+                { value: 'primary', label: '主要按钮（实心）' },
+                { value: 'default', label: '默认按钮（白底）' },
+                { value: 'dashed', label: '虚线按钮' },
+                { value: 'text', label: '文字按钮' },
+                { value: 'link', label: '链接按钮' },
               ]} />
             </Form.Item>
-            <Form.Item label="尺寸">
-              <Select value={props.size} onChange={(v) => handlePropsChange('size', v)} options={[
+            <Form.Item label="按钮尺寸">
+              <Select value={props.size || 'middle'} onChange={(v) => handlePropsChange('size', v)} options={[
                 { value: 'small', label: '小' },
                 { value: 'middle', label: '中' },
                 { value: 'large', label: '大' },
               ]} />
             </Form.Item>
-            <Form.Item label="通栏显示">
-              <Switch checked={props.block} onChange={(v) => handlePropsChange('block', v)} />
+            <Form.Item label="圆角大小">
+              <InputNumber 
+                value={props.borderRadius ?? 6} 
+                onChange={(v) => handlePropsChange('borderRadius', v)} 
+                min={0} 
+                max={50}
+                style={{ width: '100%' }} 
+                addonAfter="px"
+              />
             </Form.Item>
+            <Form.Item label="显示阴影">
+              <Switch checked={props.shadow || false} onChange={(v) => handlePropsChange('shadow', v)} />
+            </Form.Item>
+            
+            {/* 自定义颜色 */}
+            <Form.Item label="背景颜色">
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <ColorPicker 
+                  value={props.backgroundColor || undefined} 
+                  onChange={(color) => handlePropsChange('backgroundColor', color.toHexString())}
+                  showText
+                  allowClear
+                  onClear={() => handlePropsChange('backgroundColor', '')}
+                />
+                <span style={{ color: '#999', fontSize: 12 }}>留空使用默认</span>
+              </div>
+            </Form.Item>
+            <Form.Item label="文字颜色">
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <ColorPicker 
+                  value={props.textColor || undefined} 
+                  onChange={(color) => handlePropsChange('textColor', color.toHexString())}
+                  showText
+                  allowClear
+                  onClear={() => handlePropsChange('textColor', '')}
+                />
+                <span style={{ color: '#999', fontSize: 12 }}>留空使用默认</span>
+              </div>
+            </Form.Item>
+            <Form.Item label="边框颜色">
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <ColorPicker 
+                  value={props.borderColor || undefined} 
+                  onChange={(color) => handlePropsChange('borderColor', color.toHexString())}
+                  showText
+                  allowClear
+                  onClear={() => handlePropsChange('borderColor', '')}
+                />
+                <span style={{ color: '#999', fontSize: 12 }}>留空使用默认</span>
+              </div>
+            </Form.Item>
+
+            {/* 布局配置 */}
+            <div style={{ fontWeight: 600, color: '#1677ff', margin: '16px 0 8px', fontSize: 13 }}>布局配置</div>
+            <Form.Item label="对齐方式">
+              <Select value={props.align || 'center'} onChange={(v) => handlePropsChange('align', v)} options={[
+                { value: 'left', label: '左对齐' },
+                { value: 'center', label: '居中对齐' },
+                { value: 'right', label: '右对齐' },
+              ]} />
+            </Form.Item>
+            <Form.Item label="宽度设置">
+              <Select value={props.widthType || 'auto'} onChange={(v) => handlePropsChange('widthType', v)} options={[
+                { value: 'auto', label: '自适应宽度' },
+                { value: 'fixed', label: '固定宽度' },
+                { value: 'full', label: '通栏宽度' },
+              ]} />
+            </Form.Item>
+            {props.widthType === 'fixed' && (
+              <Form.Item label="固定宽度">
+                <InputNumber 
+                  value={props.customWidth || 120} 
+                  onChange={(v) => handlePropsChange('customWidth', v)} 
+                  min={50} 
+                  max={500}
+                  style={{ width: '100%' }} 
+                  addonAfter="px"
+                />
+              </Form.Item>
+            )}
+            <Form.Item label="上下内边距">
+              <InputNumber 
+                value={props.padding ?? 16} 
+                onChange={(v) => handlePropsChange('padding', v)} 
+                min={0} 
+                max={100}
+                style={{ width: '100%' }} 
+                addonAfter="px"
+              />
+            </Form.Item>
+
+            {/* 链接配置 */}
+            <div style={{ fontWeight: 600, color: '#1677ff', margin: '16px 0 8px', fontSize: 13 }}>链接配置</div>
+            <Form.Item label="链接类型">
+              <Select 
+                value={props.linkType || 'none'} 
+                onChange={(v) => {
+                  handlePropsChange('linkType', v);
+                  // 切换类型时设置默认值
+                  if (v === 'home') {
+                    handlePropsChange('linkValue', '/');
+                  } else if (v === 'none') {
+                    handlePropsChange('linkValue', '');
+                  }
+                }} 
+                options={[
+                  { value: 'none', label: '无链接' },
+                  { value: 'home', label: '首页' },
+                  { value: 'page', label: '站内页面' },
+                  { value: 'url', label: '外部链接' },
+                ]} 
+              />
+            </Form.Item>
+            {props.linkType === 'page' && (
+              <Form.Item label="选择页面">
+                <Select 
+                  value={props.linkValue} 
+                  onChange={(v) => handlePropsChange('linkValue', v)} 
+                  placeholder="请选择目标页面"
+                  options={pageList.map(p => ({ value: p.key, label: p.title }))}
+                  showSearch
+                  filterOption={(input, option) => 
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                />
+              </Form.Item>
+            )}
+            {props.linkType === 'url' && (
+              <Form.Item label="链接地址">
+                <Input 
+                  value={props.linkValue} 
+                  onChange={(e) => handlePropsChange('linkValue', e.target.value)} 
+                  placeholder="https://example.com" 
+                />
+              </Form.Item>
+            )}
+            {props.linkType && props.linkType !== 'none' && (
+              <Form.Item label="打开方式">
+                <Switch 
+                  checked={props.openInNewTab || false} 
+                  onChange={(v) => handlePropsChange('openInNewTab', v)} 
+                  checkedChildren="新窗口"
+                  unCheckedChildren="当前页"
+                />
+              </Form.Item>
+            )}
           </>
         )}
 
@@ -539,7 +1137,7 @@ const PageEditor: React.FC = () => {
         {type === 'cards' && (
           <>
             <Form.Item label="每行列数">
-              <InputNumber min={1} max={4} value={props.columns} onChange={(v) => handlePropsChange('columns', v)} style={{ width: '100%' }} />
+              <InputNumber min={1} max={12} value={props.columns} onChange={(v) => handlePropsChange('columns', v)} style={{ width: '100%' }} />
             </Form.Item>
             <Form.Item label="卡片数据">
               <div style={{ fontSize: '12px', color: '#999', marginBottom: 8 }}>
@@ -614,7 +1212,11 @@ const PageEditor: React.FC = () => {
                   { value: 2, label: '2 列' },
                   { value: 3, label: '3 列' },
                   { value: 4, label: '4 列' },
+                  { value: 5, label: '5 列' },
                   { value: 6, label: '6 列' },
+                  { value: 8, label: '8 列' },
+                  { value: 10, label: '10 列' },
+                  { value: 12, label: '12 列' },
                 ]} />
               </Form.Item>
             )}
@@ -711,14 +1313,15 @@ const PageEditor: React.FC = () => {
                     </Form.Item>
                   )}
                   {child.type === 'image' && (
-                    <Form.Item label="图片地址" style={{ marginBottom: 0 }}>
-                      <Input 
-                        value={child.props?.src} 
-                        onChange={(e) => {
+                    <Form.Item label="图片来源" style={{ marginBottom: 0 }}>
+                      <ImagePicker
+                        value={child.props?.src}
+                        onChange={(url) => {
                           const newChildren = [...(props.children || [])];
-                          newChildren[index] = { ...newChildren[index], props: { ...newChildren[index].props, src: e.target.value } };
+                          newChildren[index] = { ...newChildren[index], props: { ...newChildren[index].props, src: url } };
                           handlePropsChange('children', newChildren);
-                        }} 
+                        }}
+                        placeholder="选择图片"
                       />
                     </Form.Item>
                   )}
@@ -771,6 +1374,52 @@ const PageEditor: React.FC = () => {
             </Form.Item>
           </>
         )}
+
+        {type === 'articles' && (
+          <>
+            <Form.Item label="显示模式">
+              <Select value={props.displayMode || 'list'} onChange={(v) => handlePropsChange('displayMode', v)} options={[
+                { value: 'list', label: '列表模式' },
+                { value: 'grid', label: '网格模式' },
+              ]} />
+            </Form.Item>
+            <Form.Item label="显示标题区域">
+              <Switch checked={props.showTitle} onChange={(v) => handlePropsChange('showTitle', v)} />
+            </Form.Item>
+            {props.showTitle && (
+              <Form.Item label="自定义标题">
+                <Input value={props.sectionTitle} onChange={(e) => handlePropsChange('sectionTitle', e.target.value)} placeholder="例如：最新文章、公司新闻" />
+              </Form.Item>
+            )}
+            <Form.Item label="每页显示数量">
+              <InputNumber min={1} max={50} value={props.limit} onChange={(v) => handlePropsChange('limit', v)} style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="显示分页">
+              <Switch checked={props.showPagination} onChange={(v) => handlePropsChange('showPagination', v)} />
+            </Form.Item>
+            
+            {/* TODO: 分类和标签选择，需要从后端获取数据 */}
+            <Form.Item label="按分类筛选" tooltip="留空则显示所有分类">
+              <Input 
+                type="number"
+                value={props.categoryId || ''} 
+                onChange={(e) => handlePropsChange('categoryId', e.target.value ? Number(e.target.value) : undefined)} 
+                placeholder="输入分类 ID"
+              />
+            </Form.Item>
+            <Form.Item label="按标签筛选" tooltip="留空则显示所有标签">
+              <Input 
+                value={props.tagId || ''} 
+                onChange={(e) => handlePropsChange('tagId', e.target.value)} 
+                placeholder="输入标签名称或 ID"
+              />
+            </Form.Item>
+            
+            <div style={{ fontSize: '12px', color: '#999', padding: '8px', background: '#f5f5f5', borderRadius: '4px' }}>
+              💡 提示：分类 ID 可在后台分类管理中查看，标签可使用名称或 ID
+            </div>
+          </>
+        )}
       </Form>
     );
   };
@@ -796,6 +1445,38 @@ const PageEditor: React.FC = () => {
           >
             清空画布
           </Button>
+          
+          {/* 预设模板按钮 */}
+          {['solutions', 'cases', 'about'].includes(currentPageKey) && (
+            <>
+              <div style={{ margin: '12px 0 8px', fontWeight: 'bold', fontSize: '14px', borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+                页面模板
+              </div>
+              <Flex vertical gap={8}>
+                <Button
+                  block
+                  onClick={() => handleUseTemplate('solutions' as any)}
+                  disabled={currentPageKey !== 'solutions'}
+                >
+                  🎯 解决方案模板
+                </Button>
+                <Button
+                  block
+                  onClick={() => handleUseTemplate('cases' as any)}
+                  disabled={currentPageKey !== 'cases'}
+                >
+                  🏆 成功案例模板
+                </Button>
+                <Button
+                  block
+                  onClick={() => handleUseTemplate('about' as any)}
+                  disabled={currentPageKey !== 'about'}
+                >
+                  👥 关于我们模板
+                </Button>
+              </Flex>
+            </>
+          )}
         </Flex>
         
         <div style={{ marginBottom: 12, fontWeight: 'bold', fontSize: '14px', borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>组件库</div>
@@ -887,6 +1568,11 @@ const PageEditor: React.FC = () => {
                     component={component}
                     isSelected={selectedId === component.id}
                     onSelect={() => setSelectedId(component.id)}
+                    onDelete={(componentId: string) => {
+                      setComponents(components.filter((c) => c.id !== componentId));
+                      setSelectedId(null);
+                      message.success('已删除组件');
+                    }}
                   />
                 ))}
               </SortableContext>

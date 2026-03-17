@@ -114,6 +114,9 @@ export interface TextComponentData extends BaseComponent {
   };
 }
 
+// 图片宽高比类型
+export type ImageAspectRatio = 'auto' | '1:1' | '4:3' | '16:9' | '3:4';
+
 // 图片组件
 export interface ImageComponentData extends BaseComponent {
   type: 'image';
@@ -124,6 +127,7 @@ export interface ImageComponentData extends BaseComponent {
     height?: string;
     objectFit?: 'cover' | 'contain' | 'fill';
     borderRadius?: number;
+    aspectRatio?: ImageAspectRatio;  // 宽高比配置
   };
 }
 
@@ -182,6 +186,7 @@ export interface ContainerComponentData extends BaseComponent {
     gap?: number;
     alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch';  // 垂直对齐
     justifyContent?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around';  // 水平对齐
+    childHeight?: number | 'auto';  // 子组件统一高度，默认 auto
     children?: (BaseComponent & { span?: number })[];  // 子组件可配置占据列数
   };
 }
@@ -312,6 +317,7 @@ export const COMPONENT_LIST: ComponentPanelItem[] = [
       width: '100%',
       objectFit: 'cover',
       borderRadius: 8,
+      aspectRatio: 'auto',
     },
   },
   {
@@ -354,6 +360,7 @@ export const COMPONENT_LIST: ComponentPanelItem[] = [
       gap: 16,
       alignItems: 'stretch',
       justifyContent: 'flex-start',
+      childHeight: 'auto',
     },
   },
   {

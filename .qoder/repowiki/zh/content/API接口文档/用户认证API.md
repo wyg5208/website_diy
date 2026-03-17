@@ -2,9 +2,23 @@
 
 <cite>
 **本文档引用的文件**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py)
+- [user.py](file://company_cms_project/backend/app/models/user.py)
+- [__init__.py](file://company_cms_project/backend/app/__init__.py)
+- [config.py](file://company_cms_project/backend/config.py)
+- [auth.ts](file://company_cms_project/frontend/src/api/auth.ts)
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts)
+- [run.py](file://company_cms_project/backend/run.py)
+- [企业网站CMS系统详细需求文档.md](file://docs/企业网站CMS系统详细需求文档.md)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 更新了Flask-JWT-Extended的JWT认证机制实现
+- 添加了完整的登录、注册、刷新、注销接口规范
+- 更新了JWT Token生成和验证流程
+- 添加了用户状态管理和账户禁用机制
+- 更新了前端认证集成示例
 
 ## 目录
 1. [简介](#简介)
@@ -12,55 +26,51 @@
 3. [核心组件](#核心组件)
 4. [架构概览](#架构概览)
 5. [详细组件分析](#详细组件分析)
-6. [依赖关系分析](#依赖关系分析)
-7. [性能考虑](#性能考虑)
-8. [故障排除指南](#故障排除指南)
-9. [结论](#结论)
-10. [附录](#附录)
+6. [JWT认证机制](#jwt认证机制)
+7. [依赖关系分析](#依赖关系分析)
+8. [性能考虑](#性能考虑)
+9. [故障排除指南](#故障排除指南)
+10. [结论](#结论)
+11. [附录](#附录)
 
 ## 简介
 
-本文档详细描述了企业网站CMS系统的用户认证API，包括登录、注册、密码重置、令牌刷新等核心接口规范。该系统基于Flask框架开发，采用JWT（JSON Web Token）技术实现用户身份认证和授权管理。
+本文档详细描述了企业网站CMS系统的用户认证API，基于Flask-JWT-Extended实现的完整JWT认证机制。系统提供登录、注册、令牌刷新、用户信息获取等核心接口，支持用户状态管理和基本的权限控制。
 
-系统支持多种认证方式，包括传统的用户名密码认证、令牌刷新机制，以及完整的密码找回和重置流程。所有API接口都遵循RESTful设计原则，提供统一的响应格式和错误码规范。
+系统采用Flask框架开发，使用Flask-JWT-Extended扩展实现JWT（JSON Web Token）技术，提供无状态的身份认证和授权管理。所有API接口都遵循RESTful设计原则，提供统一的响应格式和错误码规范。
 
 ## 项目结构
 
-企业CMS系统采用前后端分离架构，后端使用Python Flask框架，前端使用React/Vue技术栈。认证系统作为核心模块，为整个系统提供安全的身份验证和授权服务。
+企业CMS系统采用前后端分离架构，后端使用Python Flask框架，前端使用React技术栈。认证系统作为核心模块，为整个系统提供安全的身份验证和授权服务。
 
 ```mermaid
 graph TB
 subgraph "前端层"
-FE[前端应用<br/>React/Vue]
-AuthUI[认证界面<br/>登录/注册/忘记密码]
+FE[前端应用<br/>React]
+AuthUI[认证界面<br/>登录/注册]
+API[API调用封装<br/>Axios拦截器]
 end
 subgraph "后端层"
-API[Flask API服务器]
-AuthAPI[认证API模块]
-UserAPI[用户管理API]
-Middleware[认证中间件]
+FlaskApp[Flask应用]
+JWTManager[JWTManager<br/>令牌管理]
+AuthBP[认证蓝图<br/>/api/v1/auth]
+UserModel[用户模型<br/>数据库ORM]
 end
 subgraph "基础设施"
-JWT[JWT Token管理]
-Redis[Redis缓存]
+JWT[JWT配置<br/>密钥/过期时间]
 DB[(SQLite数据库)]
 end
 FE --> API
-AuthUI --> AuthAPI
-AuthAPI --> JWT
-AuthAPI --> Redis
-AuthAPI --> DB
-Middleware --> JWT
-UserAPI --> DB
+API --> FlaskApp
+FlaskApp --> JWTManager
+JWTManager --> AuthBP
+AuthBP --> UserModel
+UserModel --> DB
 ```
 
-**图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L22-L57)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L92-L105)
-
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L22-L57)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L92-L105)
+- [__init__.py](file://company_cms_project/backend/app/__init__.py#L15-L41)
+- [config.py](file://company_cms_project/backend/config.py#L19-L22)
 
 ## 核心组件
 
@@ -68,42 +78,43 @@ UserAPI --> DB
 
 系统提供完整的用户认证解决方案，包含以下核心接口：
 
-| 接口名称 | HTTP方法 | URL路径 | 功能描述 |
-|---------|---------|--------|---------|
-| 用户登录 | POST | `/api/v1/auth/login` | 用户身份验证，返回访问令牌和刷新令牌 |
-| 用户登出 | POST | `/api/v1/auth/logout` | 用户主动退出登录，使令牌失效 |
-| 用户注册 | POST | `/api/v1/auth/register` | 新用户注册账户 |
-| 刷新令牌 | POST | `/api/v1/auth/refresh` | 使用刷新令牌获取新的访问令牌 |
-| 忘记密码 | POST | `/api/v1/auth/forgot-password` | 发送密码重置邮件 |
-| 重置密码 | POST | `/api/v1/auth/reset-password` | 使用重置令牌重置用户密码 |
-| 当前用户 | GET | `/api/v1/auth/me` | 获取当前登录用户的详细信息 |
+| 接口名称 | HTTP方法 | URL路径 | 功能描述 | 认证要求 |
+|---------|---------|--------|---------|---------|
+| 用户登录 | POST | `/api/v1/auth/login` | 用户身份验证，返回访问令牌和刷新令牌 | 无需认证 |
+| 用户登出 | POST | `/api/v1/auth/logout` | 用户主动退出登录 | 需要Access Token |
+| 用户注册 | POST | `/api/v1/auth/register` | 新用户注册账户 | 无需认证 |
+| 刷新令牌 | POST | `/api/v1/auth/refresh` | 使用刷新令牌获取新的访问令牌 | 需要Refresh Token |
+| 当前用户 | GET | `/api/v1/auth/me` | 获取当前登录用户的详细信息 | 需要Access Token |
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1002-L1011)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L25-L225)
 
 ### JWT Token机制
 
-系统采用JWT（JSON Web Token）技术实现无状态认证，支持访问令牌和刷新令牌的双重机制：
+系统采用Flask-JWT-Extended扩展实现JWT技术，支持访问令牌和刷新令牌的双重机制：
 
-- **Access Token**: 有效期2小时，用于API请求的身份验证
-- **Refresh Token**: 有效期7天，用于获取新的访问令牌
-- **Token存储**: 支持LocalStorage和Cookie两种存储方式
-- **自动刷新**: 客户端可自动刷新即将过期的访问令牌
+- **Access Token**: 有效期2小时（7200秒），用于API请求的身份验证
+- **Refresh Token**: 有效期30天，用于获取新的访问令牌
+- **Token生成**: 使用用户ID作为identity，确保令牌唯一性
+- **Token存储**: 客户端通过LocalStorage存储令牌
+- **自动刷新**: 前端通过Axios拦截器处理401错误并自动刷新
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1082-L1086)
+- [config.py](file://company_cms_project/backend/config.py#L20-L22)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L84-L85)
 
 ### 密码安全策略
 
 系统实施多层次的密码安全保护机制：
 
-- **密码加密**: 使用bcrypt算法，成本因子为12
-- **密码强度**: 至少8位字符，包含字母和数字
-- **密码历史**: 记录密码历史，防止重复使用相同密码
-- **登录锁定**: 连续5次登录失败锁定30分钟
+- **密码加密**: 使用Werkzeug Security的generate_password_hash，成本因子为12
+- **密码强度**: 至少8位字符，必须包含字母和数字
+- **邮箱验证**: 使用正则表达式验证邮箱格式
+- **账户状态**: 支持用户启用/禁用状态管理
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1088-L1092)
+- [user.py](file://company_cms_project/backend/app/models/user.py#L27-L33)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L14-L23)
 
 ## 架构概览
 
@@ -113,25 +124,25 @@ UserAPI --> DB
 sequenceDiagram
 participant Client as 客户端应用
 participant AuthAPI as 认证API
-participant JWT as JWT处理器
-participant Redis as Redis缓存
+participant JWTManager as JWTManager
+participant UserModel as 用户模型
 participant DB as SQLite数据库
 Client->>AuthAPI : POST /api/v1/auth/login
-AuthAPI->>DB : 验证用户凭据
-DB-->>AuthAPI : 用户信息
-AuthAPI->>JWT : 生成Access Token
-JWT-->>AuthAPI : Access Token
-AuthAPI->>JWT : 生成Refresh Token
-JWT-->>AuthAPI : Refresh Token
-AuthAPI->>Redis : 存储Token映射
-Redis-->>AuthAPI : 存储成功
+AuthAPI->>UserModel : 查询用户信息
+UserModel->>DB : 数据库查询
+DB-->>UserModel : 用户数据
+UserModel-->>AuthAPI : 用户对象
+AuthAPI->>AuthAPI : 验证密码
+AuthAPI->>JWTManager : 生成Access Token
+JWTManager-->>AuthAPI : Access Token
+AuthAPI->>JWTManager : 生成Refresh Token
+JWTManager-->>AuthAPI : Refresh Token
 AuthAPI-->>Client : 返回Token和用户信息
-Note over Client,Redis : Token存储在客户端(LocalStorage/Cookie)
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1082-L1086)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L142-L148)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L159)
+- [__init__.py](file://company_cms_project/backend/app/__init__.py#L27-L29)
 
 ### 令牌刷新流程
 
@@ -139,22 +150,19 @@ Note over Client,Redis : Token存储在客户端(LocalStorage/Cookie)
 sequenceDiagram
 participant Client as 客户端应用
 participant AuthAPI as 认证API
-participant JWT as JWT处理器
-participant Redis as Redis缓存
+participant JWTManager as JWTManager
 Client->>AuthAPI : POST /api/v1/auth/refresh
-AuthAPI->>JWT : 验证Refresh Token
-JWT-->>AuthAPI : 验证通过
-AuthAPI->>Redis : 检查Token有效性
-Redis-->>AuthAPI : Token有效
-AuthAPI->>JWT : 生成新的Access Token
-JWT-->>AuthAPI : 新Access Token
+AuthAPI->>JWTManager : 验证Refresh Token
+JWTManager-->>AuthAPI : 验证通过
+AuthAPI->>JWTManager : 生成新的Access Token
+JWTManager-->>AuthAPI : 新Access Token
 AuthAPI-->>Client : 返回新Token
 Note over Client,AuthAPI : Access Token有效期2小时
-Note over Client,AuthAPI : Refresh Token有效期7天
+Note over Client,AuthAPI : Refresh Token有效期30天
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1082-L1086)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L174-L194)
 
 ## 详细组件分析
 
@@ -180,34 +188,32 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 ```json
 {
   "code": 200,
-  "message": "success",
+  "message": "登录成功",
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIs...",
-    "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
     "user": {
       "id": 1,
       "username": "admin",
       "email": "admin@example.com",
       "display_name": "管理员",
       "avatar": null,
-      "created_at": "2026-01-01T00:00:00Z"
-    }
-  },
-  "meta": {
-    "timestamp": 1700000000,
-    "request_id": "unique-request-id"
+      "status": 1,
+      "created_at": "2026-01-01T00:00:00Z",
+      "last_login": "2026-01-15T10:30:00Z"
+    },
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
   }
 }
 ```
 
 **HTTP状态码**
 - 200: 登录成功
-- 400: 请求参数错误
-- 401: 用户名或密码错误
+- 400: 请求参数错误或验证失败
+- 401: 用户名或密码错误或账户被禁用
 - 500: 服务器内部错误
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1004)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L159)
 
 ### 注册接口
 
@@ -225,7 +231,7 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 | username | string | 是 | 用户名，3-20字符 |
 | email | string | 是 | 邮箱地址 |
 | password | string | 是 | 密码，至少8位 |
-| confirm_password | string | 是 | 确认密码 |
+| display_name | string | 否 | 显示名称，默认使用用户名 |
 
 **响应格式**
 
@@ -233,15 +239,20 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 ```json
 {
   "code": 201,
-  "message": "用户注册成功",
+  "message": "注册成功",
   "data": {
-    "user_id": 2,
-    "username": "newuser",
-    "email": "newuser@example.com"
-  },
-  "meta": {
-    "timestamp": 1700000000,
-    "request_id": "unique-request-id"
+    "user": {
+      "id": 2,
+      "username": "newuser",
+      "email": "newuser@example.com",
+      "display_name": "newuser",
+      "avatar": null,
+      "status": 1,
+      "created_at": "2026-01-15T10:30:00Z",
+      "last_login": null
+    },
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
   }
 }
 ```
@@ -253,68 +264,39 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 - 500: 服务器内部错误
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1006)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L25-L103)
 
-### 密码重置接口
+### 登出接口
 
-#### 忘记密码流程
+#### 接口规范
 
 **HTTP请求**
 - 方法: POST
-- 路径: `/api/v1/auth/forgot-password`
-- 认证: 无需认证
+- 路径: `/api/v1/auth/logout`
+- 认证: 需要有效的Access Token
 
 **请求参数**
-
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|------|------|
-| email | string | 是 | 用户邮箱地址 |
+- 无请求参数
+- 认证信息通过Authorization头传递
 
 **响应格式**
 ```json
 {
   "code": 200,
-  "message": "密码重置邮件已发送，请检查邮箱",
-  "data": null,
-  "meta": {
-    "timestamp": 1700000000,
-    "request_id": "unique-request-id"
-  }
+  "message": "登出成功",
+  "data": null
 }
 ```
 
-#### 重置密码流程
-
-**HTTP请求**
-- 方法: POST
-- 路径: `/api/v1/auth/reset-password`
-- 认证: 无需认证
-
-**请求参数**
-
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|------|------|
-| token | string | 是 | 重置令牌 |
-| new_password | string | 是 | 新密码，至少8位 |
-| confirm_password | string | 是 | 确认新密码 |
-
-**响应格式**
-```json
-{
-  "code": 200,
-  "message": "密码重置成功",
-  "data": null,
-  "meta": {
-    "timestamp": 1700000000,
-    "request_id": "unique-request-id"
-  }
-}
-```
+**HTTP状态码**
+- 200: 登出成功
+- 401: 未认证或令牌无效
+- 500: 服务器内部错误
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1008-L1009)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L162-L171)
 
-### 令牌刷新接口
+### 刷新令牌接口
 
 #### 接口规范
 
@@ -331,13 +313,9 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 ```json
 {
   "code": 200,
-  "message": "success",
+  "message": "Token刷新成功",
   "data": {
     "access_token": "eyJhbGciOiJIUzI1NiIs..."
-  },
-  "meta": {
-    "timestamp": 1700000000,
-    "request_id": "unique-request-id"
   }
 }
 ```
@@ -348,7 +326,7 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 - 500: 服务器内部错误
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1007)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L174-L194)
 
 ### 当前用户信息接口
 
@@ -366,20 +344,18 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 ```json
 {
   "code": 200,
-  "message": "success",
+  "message": "获取成功",
   "data": {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@example.com",
-    "display_name": "管理员",
-    "avatar": null,
-    "status": 1,
-    "created_at": "2026-01-01T00:00:00Z",
-    "last_login": "2026-01-15T10:30:00Z"
-  },
-  "meta": {
-    "timestamp": 1700000000,
-    "request_id": "unique-request-id"
+    "user": {
+      "id": 1,
+      "username": "admin",
+      "email": "admin@example.com",
+      "display_name": "管理员",
+      "avatar": null,
+      "status": 1,
+      "created_at": "2026-01-01T00:00:00Z",
+      "last_login": "2026-01-15T10:30:00Z"
+    }
   }
 }
 ```
@@ -391,7 +367,71 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 - 500: 服务器内部错误
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1010)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L197-L225)
+
+## JWT认证机制
+
+### JWT配置详解
+
+系统使用Flask-JWT-Extended扩展实现JWT认证，配置如下：
+
+- **JWT_SECRET_KEY**: 从环境变量JWT_SECRET_KEY获取，用于签名令牌
+- **JWT_ACCESS_TOKEN_EXPIRES**: 7200秒（2小时），访问令牌有效期
+- **JWT_REFRESH_TOKEN_EXPIRES**: 30天，刷新令牌有效期
+
+### 令牌生成和验证流程
+
+```mermaid
+flowchart TD
+Start([用户请求认证]) --> CheckAuth{检查认证类型}
+CheckAuth --> LoginReq["登录请求"]
+CheckAuth --> RegisterReq["注册请求"]
+CheckAuth --> RefreshReq["刷新请求"]
+LoginReq --> ValidateUser["验证用户凭据"]
+ValidateUser --> UserValid{"用户有效?"}
+UserValid --> |否| Return401["返回401错误"]
+UserValid --> |是| CreateTokens["生成JWT令牌"]
+RegisterReq --> CreateUser["创建用户记录"]
+CreateUser --> CreateTokens
+RefreshReq --> VerifyRefresh["验证刷新令牌"]
+VerifyRefresh --> RefreshValid{"令牌有效?"}
+RefreshValid --> |否| Return401
+RefreshValid --> |是| CreateNewAccess["生成新访问令牌"]
+CreateTokens --> StoreUser["更新最后登录时间"]
+StoreUser --> ReturnSuccess["返回成功响应"]
+CreateNewAccess --> ReturnSuccess
+Return401 --> End([结束])
+ReturnSuccess --> End
+```
+
+**图表来源**
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L159)
+- [config.py](file://company_cms_project/backend/config.py#L19-L22)
+
+### 前端认证集成
+
+前端使用Axios拦截器实现自动认证：
+
+```mermaid
+sequenceDiagram
+participant Frontend as 前端应用
+participant Axios as Axios拦截器
+participant API as 认证API
+Frontend->>Axios : 发起API请求
+Axios->>Axios : 从localStorage获取token
+Axios->>API : 添加Authorization头
+API-->>Axios : 返回响应
+Axios->>Axios : 检查响应状态
+Axios->>Axios : 处理401错误
+Axios->>Frontend : 清除token并跳转登录
+```
+
+**图表来源**
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts#L17-L53)
+
+**章节来源**
+- [config.py](file://company_cms_project/backend/config.py#L19-L22)
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts#L17-L53)
 
 ## 依赖关系分析
 
@@ -403,28 +443,27 @@ Note over Client,AuthAPI : Refresh Token有效期7天
 graph TB
 subgraph "认证相关依赖"
 FlaskJWT[Flask-JWT-Extended]
-Bcrypt[bcrypt]
-Redis[Redis]
+Werkzeug[Flask Security]
+SQLAlchemy[Flask-SQLAlchemy]
 end
 subgraph "核心框架"
 Flask[Flask]
-SQLAlchemy[Flask-SQLAlchemy]
-WTForms[Flask-WTF]
+CORS[Flask-CORS]
 end
 subgraph "前端集成"
 Axios[Axios]
-JWTDecode[jwt-decode]
 end
 Flask --> FlaskJWT
-Flask --> Bcrypt
-FlaskJWT --> Redis
+Flask --> Werkzeug
+FlaskJWT --> SQLAlchemy
 Flask --> SQLAlchemy
-Flask --> WTForms
-Axios --> JWTDecode
+Flask --> CORS
+Axios --> Flask
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L559-L593)
+- [__init__.py](file://company_cms_project/backend/app/__init__.py#L1-L14)
+- [user.py](file://company_cms_project/backend/app/models/user.py#L1-L4)
 
 ### 数据流分析
 
@@ -436,31 +475,37 @@ InputValid --> |否| ReturnBadRequest["返回400错误"]
 InputValid --> |是| CheckAuthType["检查认证类型"]
 CheckAuthType --> LoginFlow["登录流程"]
 CheckAuthType --> RegisterFlow["注册流程"]
-CheckAuthType --> ResetFlow["密码重置流程"]
-LoginFlow --> VerifyCredentials["验证用户凭据"]
-VerifyCredentials --> CredentialsValid{"凭据有效?"}
-CredentialsValid --> |否| ReturnUnauthorized["返回401错误"]
-CredentialsValid --> |是| GenerateTokens["生成JWT令牌"]
+CheckAuthType --> RefreshFlow["刷新流程"]
+LoginFlow --> QueryUser["查询用户信息"]
+QueryUser --> VerifyPassword["验证密码"]
+VerifyPassword --> PasswordValid{"密码正确?"}
+PasswordValid --> |否| ReturnUnauthorized["返回401错误"]
+PasswordValid --> |是| CheckStatus["检查用户状态"]
+CheckStatus --> StatusActive{"用户状态正常?"}
+StatusActive --> |否| ReturnDisabled["返回401错误"]
+StatusActive --> |是| GenerateTokens["生成JWT令牌"]
 RegisterFlow --> CreateUser["创建用户记录"]
 CreateUser --> GenerateTokens
-ResetFlow --> VerifyResetToken["验证重置令牌"]
-VerifyResetToken --> TokenValid{"令牌有效?"}
+RefreshFlow --> VerifyRefreshToken["验证刷新令牌"]
+VerifyRefreshToken --> TokenValid{"令牌有效?"}
 TokenValid --> |否| ReturnInvalidToken["返回401错误"]
-TokenValid --> |是| UpdatePassword["更新用户密码"]
-GenerateTokens --> StoreToken["存储令牌映射"]
-StoreToken --> ReturnSuccess["返回成功响应"]
-UpdatePassword --> ReturnSuccess
+TokenValid --> |是| GenerateNewAccess["生成新访问令牌"]
+GenerateTokens --> UpdateLastLogin["更新最后登录时间"]
+UpdateLastLogin --> ReturnSuccess["返回成功响应"]
+GenerateNewAccess --> ReturnSuccess
 ReturnUnauthorized --> End([结束])
 ReturnBadRequest --> End
 ReturnInvalidToken --> End
+ReturnDisabled --> End
 ReturnSuccess --> End
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1082-L1092)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L159)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L559-L593)
+- [__init__.py](file://company_cms_project/backend/app/__init__.py#L1-L14)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L159)
 
 ## 性能考虑
 
@@ -468,19 +513,18 @@ ReturnSuccess --> End
 
 系统在JWT令牌处理方面采用了多项性能优化策略：
 
-- **令牌缓存**: 使用Redis缓存活跃令牌，减少数据库查询
-- **令牌预生成**: 在用户登录时预生成短期访问令牌
-- **批量验证**: 对于批量API请求，支持令牌批量验证
-- **内存优化**: 令牌存储采用高效的键值对结构
+- **无状态设计**: JWT是无状态的，不需要服务器端存储令牌
+- **快速验证**: 使用Flask-JWT-Extended的快速令牌验证机制
+- **内存优化**: 令牌验证在内存中进行，无需数据库查询
+- **连接池**: 数据库连接采用Flask-SQLAlchemy的连接池管理
 
 ### 并发处理
 
 系统支持高并发场景下的认证处理：
 
-- **Redis集群**: 支持Redis集群部署，提高令牌存储性能
-- **连接池**: 数据库连接采用连接池管理
+- **无锁设计**: JWT验证是无锁的，支持高并发访问
 - **异步处理**: 邮件发送等异步操作
-- **负载均衡**: 支持多实例部署
+- **负载均衡**: 支持多实例部署，JWT密钥一致即可
 
 ## 故障排除指南
 
@@ -490,37 +534,38 @@ ReturnSuccess --> End
 - 检查客户端是否正确存储Access Token
 - 验证Token是否被正确添加到Authorization头
 - 确认Token格式是否为Bearer Token
+- 检查JWT_SECRET_KEY配置是否正确
 
 **问题2: 刷新令牌失败**
 - 检查Refresh Token是否仍在有效期内
-- 验证Redis服务是否正常运行
-- 确认Token是否被意外注销
+- 验证JWT_REFRESH_TOKEN_EXPIRES配置
+- 确认令牌格式是否正确
 
-**问题3: 密码重置邮件未收到**
-- 检查SMTP配置是否正确
-- 验证邮箱地址格式
-- 确认邮件服务器网络连通性
+**问题3: 用户状态异常**
+- 检查用户状态字段是否为1（正常）
+- 验证用户是否被禁用
+- 确认数据库连接是否正常
 
 ### 错误码对照表
 
 | HTTP状态码 | 错误代码 | 错误描述 | 处理建议 |
 |-----------|---------|---------|---------|
 | 200 | SUCCESS | 操作成功 | 正常响应 |
+| 201 | CREATED | 资源创建成功 | 注册成功 |
 | 400 | INVALID_INPUT | 请求参数无效 | 检查请求参数格式 |
 | 401 | UNAUTHORIZED | 未认证或令牌无效 | 重新登录获取新令牌 |
-| 403 | FORBIDDEN | 权限不足 | 检查用户角色权限 |
 | 404 | NOT_FOUND | 资源不存在 | 检查URL路径 |
 | 409 | CONFLICT | 资源冲突 | 解决数据冲突问题 |
 | 500 | INTERNAL_ERROR | 服务器内部错误 | 检查服务器日志 |
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L974-L982)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L159)
 
 ## 结论
 
-企业CMS系统的用户认证API提供了完整、安全、易用的身份验证解决方案。系统采用JWT技术实现了无状态认证，支持多种认证场景和安全机制。
+企业CMS系统的用户认证API基于Flask-JWT-Extended实现了完整的JWT认证机制。系统提供了标准的认证接口，支持用户注册、登录、令牌刷新等功能，并具备良好的安全性设计。
 
-通过标准化的API接口、完善的错误处理和安全策略，系统能够满足企业级应用对用户认证的各种需求。同时，系统的模块化设计和良好的扩展性为未来的功能增强奠定了坚实基础。
+通过Flask-JWT-Extended的无状态认证特性，系统能够轻松扩展到多实例部署场景。前端通过Axios拦截器实现了自动认证和错误处理，提升了用户体验。
 
 ## 附录
 
@@ -530,7 +575,7 @@ ReturnSuccess --> End
 
 **登录示例**
 ```bash
-curl -X POST https://your-domain.com/api/v1/auth/login \
+curl -X POST http://127.0.0.1:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
@@ -540,13 +585,13 @@ curl -X POST https://your-domain.com/api/v1/auth/login \
 
 **获取用户信息示例**
 ```bash
-curl -X GET https://your-domain.com/api/v1/auth/me \
+curl -X GET http://127.0.0.1:5000/api/v1/auth/me \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 **刷新令牌示例**
 ```bash
-curl -X POST https://your-domain.com/api/v1/auth/refresh \
+curl -X POST http://127.0.0.1:5000/api/v1/auth/refresh \
   -H "Authorization: Bearer YOUR_REFRESH_TOKEN"
 ```
 
@@ -559,7 +604,7 @@ curl -X POST https://your-domain.com/api/v1/auth/refresh \
 // 设置全局请求拦截器
 axios.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -573,8 +618,8 @@ axios.interceptors.response.use(
   response => response,
   error => {
     if (error.response.status === 401) {
-      // 自动刷新令牌
-      refreshToken();
+      localStorage.removeItem('token');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -589,20 +634,18 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('access_token'));
+  const [token, setToken] = useState(localStorage.getItem('token'));
 
   const login = async (credentials) => {
     const response = await axios.post('/api/v1/auth/login', credentials);
     const { access_token, refresh_token, user } = response.data.data;
     
-    localStorage.setItem('access_token', access_token);
-    localStorage.setItem('refresh_token', refresh_token);
+    localStorage.setItem('token', access_token);
     setUser(user);
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
@@ -615,4 +658,5 @@ export const AuthProvider = ({ children }) => {
 ```
 
 **章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L292-L323)
+- [auth.ts](file://company_cms_project/frontend/src/api/auth.ts#L1-L18)
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts#L1-L56)

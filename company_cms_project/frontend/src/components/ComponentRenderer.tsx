@@ -317,37 +317,105 @@ const TextRenderer: React.FC<{ props: any }> = ({ props }) => (
 );
 
 // 图片渲染
-const ImageRenderer: React.FC<{ props: any }> = ({ props }) => (
-  <div style={{ width: '100%', textAlign: 'center' }}>
-    {props.src ? (
-      <img
-        src={props.src}
-        alt={props.alt || ''}
-        style={{
-          width: props.width || '100%',
-          height: props.height || 'auto',
-          objectFit: props.objectFit || 'cover',
-          borderRadius: props.borderRadius || 0,
-        }}
-      />
-    ) : (
-      <div
-        style={{
-          width: '100%',
-          height: '200px',
-          background: '#f0f0f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#999',
-          borderRadius: props.borderRadius || 0,
-        }}
-      >
-        请设置图片地址
+const ImageRenderer: React.FC<{ props: any }> = ({ props }) => {
+  // 宽高比对应的 padding-top 百分比
+  const aspectRatioMap: Record<string, number> = {
+    '1:1': 100,
+    '4:3': 75,
+    '16:9': 56.25,
+    '3:4': 133.33,
+  };
+  
+  const aspectRatio = props.aspectRatio || 'auto';
+  const hasAspectRatio = aspectRatio !== 'auto' && aspectRatioMap[aspectRatio];
+  
+  // 如果设置了宽高比，使用 padding-top 技巧
+  if (hasAspectRatio) {
+    return (
+      <div style={{ width: '100%', textAlign: 'center' }}>
+        {props.src ? (
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              paddingTop: `${aspectRatioMap[aspectRatio]}%`,
+              overflow: 'hidden',
+              borderRadius: props.borderRadius || 0,
+            }}
+          >
+            <img
+              src={props.src}
+              alt={props.alt || ''}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: props.objectFit || 'cover',
+              }}
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              paddingTop: `${aspectRatioMap[aspectRatio]}%`,
+              position: 'relative',
+              background: '#f0f0f0',
+              borderRadius: props.borderRadius || 0,
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                color: '#999',
+              }}
+            >
+              请设置图片地址
+            </div>
+          </div>
+        )}
       </div>
-    )}
-  </div>
-);
+    );
+  }
+  
+  // 原始渲染方式（无宽高比）
+  return (
+    <div style={{ width: '100%', textAlign: 'center' }}>
+      {props.src ? (
+        <img
+          src={props.src}
+          alt={props.alt || ''}
+          style={{
+            width: props.width || '100%',
+            height: props.height || 'auto',
+            objectFit: props.objectFit || 'cover',
+            borderRadius: props.borderRadius || 0,
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: '100%',
+            height: '200px',
+            background: '#f0f0f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#999',
+            borderRadius: props.borderRadius || 0,
+          }}
+        >
+          请设置图片地址
+        </div>
+      )}
+    </div>
+  );
+};
 
 // 按钮渲染
 const ButtonRenderer: React.FC<{ props: any }> = ({ props }) => {
@@ -548,6 +616,12 @@ const ContainerRenderer: React.FC<{ props: any }> = ({ props }) => {
             const widthPercent = (span / columns) * 100;
             childStyle.flex = `0 0 calc(${widthPercent}% - ${props.gap || 16}px)`;
             childStyle.maxWidth = `calc(${widthPercent}% - ${props.gap || 16}px)`;
+          }
+          
+          // 应用容器统一高度
+          if (props.childHeight && props.childHeight !== 'auto') {
+            childStyle.height = typeof props.childHeight === 'number' ? props.childHeight : props.childHeight;
+            childStyle.overflow = 'hidden';
           }
           
           return (

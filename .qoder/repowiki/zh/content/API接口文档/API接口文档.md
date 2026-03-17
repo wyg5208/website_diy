@@ -2,9 +2,18 @@
 
 <cite>
 **本文档引用的文件**
-- [企业网站CMS系统开发需求文档.ini](file://企业网站CMS系统开发需求文档.ini)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md)
+- [app/__init__.py](file://company_cms_project/backend/app/__init__.py)
+- [config.py](file://company_cms_project/backend/config.py)
+- [auth/routes.py](file://company_cms_project/backend/app/auth/routes.py)
+- [api/posts.py](file://company_cms_project/backend/app/api/posts.py)
+- [api/users.py](file://company_cms_project/backend/app/api/users.py)
+- [api/categories.py](file://company_cms_project/backend/app/api/categories.py)
+- [api/tags.py](file://company_cms_project/backend/app/api/tags.py)
+- [api/media.py](file://company_cms_project/backend/app/api/media.py)
+- [api/menus.py](file://company_cms_project/backend/app/api/menus.py)
+- [api/settings.py](file://company_cms_project/backend/app/api/settings.py)
+- [models/post.py](file://company_cms_project/backend/app/models/post.py)
+- [models/user.py](file://company_cms_project/backend/app/models/user.py)
 </cite>
 
 ## 目录
@@ -13,19 +22,22 @@
 3. [API架构设计](#api架构设计)
 4. [认证与授权](#认证与授权)
 5. [用户认证API](#用户认证api)
-6. [内容管理API](#内容管理api)
-7. [系统配置API](#系统配置api)
-8. [数据模型](#数据模型)
-9. [错误处理](#错误处理)
-10. [性能优化](#性能优化)
-11. [安全考虑](#安全考虑)
-12. [部署与监控](#部署与监控)
-13. [故障排除指南](#故障排除指南)
-14. [结论](#结论)
+6. [用户管理API](#用户管理api)
+7. [内容管理API](#内容管理api)
+8. [媒体库API](#媒体库api)
+9. [菜单管理API](#菜单管理api)
+10. [系统配置API](#系统配置api)
+11. [数据模型](#数据模型)
+12. [错误处理](#错误处理)
+13. [性能优化](#性能优化)
+14. [安全考虑](#安全考虑)
+15. [部署与监控](#部署与监控)
+16. [故障排除指南](#故障排除指南)
+17. [结论](#结论)
 
 ## 简介
 
-本API接口文档详细描述了企业网站CMS系统的RESTful API端点，涵盖用户认证、内容管理和系统配置三大核心功能模块。该系统采用Python Flask作为后端框架，支持JWT身份认证，提供完整的CRUD操作接口，适用于中小企业的官方网站内容管理需求。
+本API接口文档详细描述了企业网站CMS系统的RESTful API端点，涵盖用户认证、用户管理、内容管理、媒体库、菜单管理和系统配置六大核心功能模块。该系统采用Python Flask作为后端框架，支持JWT身份认证，提供完整的CRUD操作接口，适用于中小企业的官方网站内容管理需求。
 
 ## 项目概述
 
@@ -43,6 +55,8 @@
 - **RESTful API设计**: 符合REST规范的资源导向接口
 - **JWT身份认证**: 基于令牌的无状态认证机制
 - **多角色权限管理**: 支持超级管理员、管理员、编辑者等角色
+- **完整的用户管理**: 用户注册、编辑、密码管理等功能
+- **高级内容管理**: 支持分类、标签、媒体文件管理
 - **可视化编辑器**: 支持拖拽式页面布局配置
 - **多语言支持**: 中英文切换功能
 - **SEO优化**: 友好URL结构和Meta标签管理
@@ -64,10 +78,12 @@
 
 ```json
 {
+  "code": 200,
+  "message": "success",
   "data": {},
   "meta": {
-    "request_id": "uuid",
-    "timestamp": 1234567890
+    "timestamp": 1234567890,
+    "request_id": "uuid"
   }
 }
 ```
@@ -107,7 +123,7 @@
 系统采用JWT (JSON Web Token) 进行身份认证：
 
 - **Access Token**: 有效期2小时
-- **Refresh Token**: 有效期7天
+- **Refresh Token**: 有效期30天
 - **Token存储**: LocalStorage/Cookie
 - **认证头**: `Authorization: Bearer <token>`
 
@@ -140,7 +156,8 @@ API-->>Client : 返回响应或错误
 ```
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1080-L1140)
+- [config.py:19-23](file://company_cms_project/backend/config.py#L19-L23)
+- [auth/routes.py:105-159](file://company_cms_project/backend/app/auth/routes.py#L105-L159)
 
 ## 用户认证API
 
@@ -162,15 +179,21 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "access_token": "string",
-  "refresh_token": "string",
-  "user": {
-    "id": "integer",
-    "username": "string",
-    "email": "string",
-    "display_name": "string",
-    "avatar": "string",
-    "roles": ["string"]
+  "code": 200,
+  "message": "登录成功",
+  "data": {
+    "user": {
+      "id": "integer",
+      "username": "string",
+      "email": "string",
+      "display_name": "string",
+      "avatar": "string",
+      "status": "integer",
+      "created_at": "datetime",
+      "last_login": "datetime"
+    },
+    "access_token": "string",
+    "refresh_token": "string"
   }
 }
 ```
@@ -183,7 +206,13 @@ API-->>Client : 返回响应或错误
 **功能**: 用户注销，使Token失效
 
 **请求参数**: 无  
-**响应数据**: 无
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "登出成功"
+}
+```
 
 ### 注册接口
 
@@ -198,16 +227,29 @@ API-->>Client : 返回响应或错误
   "username": "string",
   "email": "string",
   "password": "string",
-  "confirm_password": "string"
+  "display_name": "string"
 }
 ```
 
 **响应数据**:
 ```json
 {
-  "user_id": "integer",
-  "username": "string",
-  "email": "string"
+  "code": 201,
+  "message": "注册成功",
+  "data": {
+    "user": {
+      "id": "integer",
+      "username": "string",
+      "email": "string",
+      "display_name": "string",
+      "avatar": "string",
+      "status": "integer",
+      "created_at": "datetime",
+      "last_login": "datetime"
+    },
+    "access_token": "string",
+    "refresh_token": "string"
+  }
 }
 ```
 
@@ -222,7 +264,11 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "access_token": "string"
+  "code": 200,
+  "message": "Token刷新成功",
+  "data": {
+    "access_token": "string"
+  }
 }
 ```
 
@@ -237,19 +283,225 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "username": "string",
-  "email": "string",
-  "display_name": "string",
-  "avatar": "string",
-  "roles": ["string"],
-  "created_at": "datetime"
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "user": {
+      "id": "integer",
+      "username": "string",
+      "email": "string",
+      "display_name": "string",
+      "avatar": "string",
+      "status": "integer",
+      "created_at": "datetime",
+      "last_login": "datetime"
+    }
+  }
 }
 ```
 
 **章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L150-L157)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1002-L1011)
+- [auth/routes.py:25-225](file://company_cms_project/backend/app/auth/routes.py#L25-L225)
+
+## 用户管理API
+
+### 用户管理API
+
+#### 用户列表接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/users`  
+**认证**: 需要认证  
+**功能**: 获取用户列表，支持分页、状态过滤和关键字搜索
+
+**查询参数**:
+- `page`: 页码，默认1
+- `per_page`: 每页数量，默认10
+- `status`: 状态过滤 (1:正常, 0:禁用)
+- `keyword`: 关键字搜索，支持用户名、邮箱、显示名称
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "items": [
+      {
+        "id": "integer",
+        "username": "string",
+        "email": "string",
+        "display_name": "string",
+        "avatar": "string",
+        "status": "integer",
+        "created_at": "datetime",
+        "last_login": "datetime"
+      }
+    ],
+    "total": "integer",
+    "page": "integer",
+    "per_page": "integer",
+    "pages": "integer"
+  }
+}
+```
+
+#### 用户详情接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/users/{id}`  
+**认证**: 需要认证  
+**功能**: 获取用户详细信息
+
+**路径参数**:
+- `id`: 用户ID
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "user": {
+      "id": "integer",
+      "username": "string",
+      "email": "string",
+      "display_name": "string",
+      "avatar": "string",
+      "status": "integer",
+      "created_at": "datetime",
+      "last_login": "datetime"
+    }
+  }
+}
+```
+
+#### 创建用户接口
+
+**HTTP方法**: POST  
+**URL**: `/api/v1/users`  
+**认证**: 需要认证  
+**功能**: 创建新用户
+
+**请求参数**:
+```json
+{
+  "username": "string",
+  "email": "string",
+  "password": "string",
+  "display_name": "string",
+  "avatar": "string",
+  "status": "integer"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 201,
+  "message": "用户创建成功",
+  "data": {
+    "user": {
+      "id": "integer",
+      "username": "string",
+      "email": "string",
+      "display_name": "string",
+      "avatar": "string",
+      "status": "integer",
+      "created_at": "datetime",
+      "last_login": "datetime"
+    }
+  }
+}
+```
+
+#### 更新用户接口
+
+**HTTP方法**: PUT  
+**URL**: `/api/v1/users/{id}`  
+**认证**: 需要认证  
+**功能**: 更新现有用户信息
+
+**路径参数**:
+- `id`: 用户ID
+
+**请求参数**:
+```json
+{
+  "display_name": "string",
+  "avatar": "string",
+  "status": "integer",
+  "email": "string",
+  "password": "string"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "用户更新成功",
+  "data": {
+    "user": {
+      "id": "integer",
+      "username": "string",
+      "email": "string",
+      "display_name": "string",
+      "avatar": "string",
+      "status": "integer",
+      "created_at": "datetime",
+      "last_login": "datetime"
+    }
+  }
+}
+```
+
+#### 删除用户接口
+
+**HTTP方法**: DELETE  
+**URL**: `/api/v1/users/{id}`  
+**认证**: 需要认证  
+**功能**: 删除用户
+
+**路径参数**:
+- `id`: 用户ID
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "用户删除成功"
+}
+```
+
+#### 重置密码接口
+
+**HTTP方法**: POST  
+**URL**: `/api/v1/users/{id}/reset-password`  
+**认证**: 需要认证  
+**功能**: 重置用户密码
+
+**路径参数**:
+- `id`: 用户ID
+
+**请求参数**:
+```json
+{
+  "password": "string"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "密码重置成功"
+}
+```
+
+**章节来源**
+- [api/users.py:24-326](file://company_cms_project/backend/app/api/users.py#L24-L326)
+- [models/user.py:35-47](file://company_cms_project/backend/app/models/user.py#L35-L47)
 
 ## 内容管理API
 
@@ -260,45 +512,91 @@ API-->>Client : 返回响应或错误
 **HTTP方法**: GET  
 **URL**: `/api/v1/posts`  
 **认证**: 需要认证  
-**功能**: 获取文章列表，支持分页和筛选
+**功能**: 获取文章列表，支持分页和高级过滤
 
 **查询参数**:
 - `page`: 页码，默认1
-- `per_page`: 每页数量，默认20
+- `per_page`: 每页数量，默认10
 - `status`: 状态过滤 (draft, published, private)
-- `category`: 分类ID过滤
-- `author`: 作者ID过滤
-- `search`: 搜索关键词
+- `category_id`: 分类ID过滤
+- `tag_id`: 标签ID过滤
+- `search`: 搜索关键词，支持标题和内容搜索
 
 **响应数据**:
 ```json
 {
-  "items": [
-    {
-      "id": "integer",
-      "title": "string",
-      "slug": "string",
-      "excerpt": "string",
-      "featured_image": "string",
-      "author": {
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "items": [
+      {
         "id": "integer",
-        "username": "string",
-        "display_name": "string"
-      },
-      "status": "string",
-      "published_at": "datetime",
-      "created_at": "datetime",
-      "updated_at": "datetime"
+        "type": "string",
+        "title": "string",
+        "slug": "string",
+        "content": "string",
+        "content_format": "string",
+        "excerpt": "string",
+        "featured_image": "string",
+        "author_id": "integer",
+        "author_name": "string",
+        "status": "string",
+        "comment_status": "boolean",
+        "is_sticky": "boolean",
+        "view_count": "integer",
+        "sort_order": "integer",
+        "parent_id": "integer",
+        "template": "string",
+        "published_at": "datetime",
+        "created_at": "datetime",
+        "updated_at": "datetime",
+        "categories": [
+          {
+            "id": "integer",
+            "name": "string",
+            "slug": "string",
+            "description": "string",
+            "parent_id": "integer",
+            "sort_order": "integer",
+            "icon": "string",
+            "created_at": "datetime"
+          }
+        ],
+        "tags": [
+          {
+            "id": "integer",
+            "name": "string",
+            "slug": "string",
+            "created_at": "datetime"
+          }
+        ]
+      }
+    ],
+    "pagination": {
+      "page": "integer",
+      "per_page": "integer",
+      "total": "integer",
+      "pages": "integer"
     }
-  ],
-  "pagination": {
-    "page": "integer",
-    "per_page": "integer",
-    "total": "integer",
-    "total_pages": "integer"
   }
 }
 ```
+
+#### 公开文章列表接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/posts/public`  
+**认证**: 无需认证  
+**功能**: 获取公开文章列表（前台使用）
+
+**查询参数**:
+- `page`: 页码，默认1
+- `per_page`: 每页数量，默认10
+- `category_id`: 分类ID过滤
+- `tag_id`: 标签ID过滤
+- `search`: 搜索关键词，支持标题和内容搜索
+
+**响应数据**: 同上
 
 #### 文章详情接口
 
@@ -313,40 +611,64 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "title": "string",
-  "slug": "string",
-  "content": "string",
-  "excerpt": "string",
-  "featured_image": "string",
-  "author": {
+  "code": 200,
+  "message": "获取成功",
+  "data": {
     "id": "integer",
-    "username": "string",
-    "display_name": "string"
-  },
-  "categories": [
-    {
-      "id": "integer",
-      "name": "string",
-      "slug": "string"
-    }
-  ],
-  "tags": [
-    {
-      "id": "integer",
-      "name": "string",
-      "slug": "string"
-    }
-  ],
-  "status": "string",
-  "comment_status": "boolean",
-  "is_sticky": "boolean",
-  "view_count": "integer",
-  "published_at": "datetime",
-  "created_at": "datetime",
-  "updated_at": "datetime"
+    "type": "string",
+    "title": "string",
+    "slug": "string",
+    "content": "string",
+    "content_format": "string",
+    "excerpt": "string",
+    "featured_image": "string",
+    "author_id": "integer",
+    "author_name": "string",
+    "status": "string",
+    "comment_status": "boolean",
+    "is_sticky": "boolean",
+    "view_count": "integer",
+    "sort_order": "integer",
+    "parent_id": "integer",
+    "template": "string",
+    "published_at": "datetime",
+    "created_at": "datetime",
+    "updated_at": "datetime",
+    "categories": [
+      {
+        "id": "integer",
+        "name": "string",
+        "slug": "string",
+        "description": "string",
+        "parent_id": "integer",
+        "sort_order": "integer",
+        "icon": "string",
+        "created_at": "datetime"
+      }
+    ],
+    "tags": [
+      {
+        "id": "integer",
+        "name": "string",
+        "slug": "string",
+        "created_at": "datetime"
+      }
+    ]
+  }
 }
 ```
+
+#### 公开文章详情接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/posts/public/{id}`  
+**认证**: 无需认证  
+**功能**: 获取公开文章详情（前台使用）
+
+**路径参数**:
+- `id`: 文章ID
+
+**响应数据**: 同上
 
 #### 创建文章接口
 
@@ -360,24 +682,31 @@ API-->>Client : 返回响应或错误
 {
   "title": "string",
   "content": "string",
+  "content_format": "string",
   "excerpt": "string",
   "featured_image": "string",
   "category_ids": ["integer"],
-  "tag_ids": ["integer"],
+  "tag_names": ["string"],
   "status": "string",
   "comment_status": "boolean",
   "is_sticky": "boolean",
-  "published_at": "datetime"
+  "type": "string",
+  "update_slug": "boolean"
 }
 ```
 
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "title": "string",
-  "slug": "string",
-  "status": "string"
+  "code": 201,
+  "message": "创建成功",
+  "data": {
+    "id": "integer",
+    "type": "string",
+    "title": "string",
+    "slug": "string",
+    "status": "string"
+  }
 }
 ```
 
@@ -396,10 +725,15 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "title": "string",
-  "slug": "string",
-  "status": "string"
+  "code": 200,
+  "message": "更新成功",
+  "data": {
+    "id": "integer",
+    "type": "string",
+    "title": "string",
+    "slug": "string",
+    "status": "string"
+  }
 }
 ```
 
@@ -413,185 +747,24 @@ API-->>Client : 返回响应或错误
 **路径参数**:
 - `id`: 文章ID
 
-**响应数据**: 无
-
-#### 批量删除文章接口
-
-**HTTP方法**: POST  
-**URL**: `/api/v1/posts/bulk-delete`  
-**认证**: 需要认证  
-**功能**: 批量删除文章
-
-**请求参数**:
-```json
-{
-  "ids": ["integer"]
-}
-```
-
-**响应数据**: 无
-
-#### 修改文章状态接口
-
-**HTTP方法**: PUT  
-**URL**: `/api/v1/posts/{id}/status`  
-**认证**: 需要认证  
-**功能**: 修改文章状态
-
-**路径参数**:
-- `id`: 文章ID
-
-**请求参数**:
-```json
-{
-  "status": "string"
-}
-```
-
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "status": "string"
+  "code": 200,
+  "message": "删除成功"
 }
 ```
+
+**章节来源**
+- [api/posts.py:40-454](file://company_cms_project/backend/app/api/posts.py#L40-L454)
+- [models/post.py:35-70](file://company_cms_project/backend/app/models/post.py#L35-L70)
 
 ### 页面管理API
 
-#### 页面列表接口
+页面管理API与文章管理共享相同的CRUD接口，通过`type`字段区分文章和页面类型。
 
-**HTTP方法**: GET  
-**URL**: `/api/v1/pages`  
-**认证**: 需要认证  
-**功能**: 获取页面列表
-
-**查询参数**:
-- `page`: 页码，默认1
-- `per_page`: 每页数量，默认20
-- `status`: 状态过滤
-
-**响应数据**: 同文章列表接口
-
-#### 页面详情接口
-
-**HTTP方法**: GET  
-**URL**: `/api/v1/pages/{id}`  
-**认证**: 需要认证  
-**功能**: 获取页面详细信息
-
-**路径参数**:
-- `id`: 页面ID
-
-**响应数据**:
-```json
-{
-  "id": "integer",
-  "title": "string",
-  "slug": "string",
-  "content": "string",
-  "template": "string",
-  "status": "string",
-  "parent_id": "integer",
-  "sort_order": "integer",
-  "created_at": "datetime",
-  "updated_at": "datetime"
-}
-```
-
-#### 创建页面接口
-
-**HTTP方法**: POST  
-**URL**: `/api/v1/pages`  
-**认证**: 需要认证  
-**功能**: 创建新页面
-
-**请求参数**:
-```json
-{
-  "title": "string",
-  "slug": "string",
-  "content": "string",
-  "template": "string",
-  "status": "string",
-  "parent_id": "integer",
-  "sort_order": "integer"
-}
-```
-
-**响应数据**: 同文章创建接口
-
-#### 更新页面接口
-
-**HTTP方法**: PUT  
-**URL**: `/api/v1/pages/{id}`  
-**认证**: 需要认证  
-**功能**: 更新现有页面
-
-**路径参数**:
-- `id`: 页面ID
-
-**请求参数**: 同页面创建接口
-
-**响应数据**: 同文章更新接口
-
-#### 删除页面接口
-
-**HTTP方法**: DELETE  
-**URL**: `/api/v1/pages/{id}`  
-**认证**: 需要认证  
-**功能**: 删除页面
-
-**路径参数**:
-- `id`: 页面ID
-
-**响应数据**: 无
-
-#### 页面组件配置接口
-
-**HTTP方法**: GET  
-**URL**: `/api/v1/pages/{id}/components`  
-**认证**: 需要认证  
-**功能**: 获取页面组件配置
-
-**路径参数**:
-- `id`: 页面ID
-
-**响应数据**:
-```json
-[
-  {
-    "id": "integer",
-    "component_type": "string",
-    "component_data": "object",
-    "sort_order": "integer",
-    "parent_id": "integer"
-  }
-]
-```
-
-#### 更新页面组件配置接口
-
-**HTTP方法**: PUT  
-**URL**: `/api/v1/pages/{id}/components`  
-**认证**: 需要认证  
-**功能**: 更新页面组件配置
-
-**路径参数**:
-- `id`: 页面ID
-
-**请求参数**:
-```json
-[
-  {
-    "component_type": "string",
-    "component_data": "object",
-    "sort_order": "integer",
-    "parent_id": "integer"
-  }
-]
-```
-
-**响应数据**: 无
+**章节来源**
+- [api/posts.py:108-454](file://company_cms_project/backend/app/api/posts.py#L108-L454)
 
 ### 分类管理API
 
@@ -607,18 +780,23 @@ API-->>Client : 返回响应或错误
 
 **响应数据**:
 ```json
-[
-  {
-    "id": "integer",
-    "name": "string",
-    "slug": "string",
-    "description": "string",
-    "parent_id": "integer",
-    "sort_order": "integer",
-    "icon": "string",
-    "children": ["object"]
-  }
-]
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": [
+    {
+      "id": "integer",
+      "name": "string",
+      "slug": "string",
+      "description": "string",
+      "parent_id": "integer",
+      "sort_order": "integer",
+      "icon": "string",
+      "created_at": "datetime",
+      "children": ["object"]
+    }
+  ]
+}
 ```
 
 #### 创建分类接口
@@ -643,9 +821,13 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "name": "string",
-  "slug": "string"
+  "code": 201,
+  "message": "创建成功",
+  "data": {
+    "id": "integer",
+    "name": "string",
+    "slug": "string"
+  }
 }
 ```
 
@@ -661,7 +843,18 @@ API-->>Client : 返回响应或错误
 
 **请求参数**: 同创建分类接口
 
-**响应数据**: 同创建分类接口
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "更新成功",
+  "data": {
+    "id": "integer",
+    "name": "string",
+    "slug": "string"
+  }
+}
+```
 
 #### 删除分类接口
 
@@ -673,7 +866,17 @@ API-->>Client : 返回响应或错误
 **路径参数**:
 - `id`: 分类ID
 
-**响应数据**: 无
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "删除成功"
+}
+```
+
+**章节来源**
+- [api/categories.py:7-185](file://company_cms_project/backend/app/api/categories.py#L7-L185)
+- [models/post.py:81-102](file://company_cms_project/backend/app/models/post.py#L81-L102)
 
 ### 标签管理API
 
@@ -687,23 +890,28 @@ API-->>Client : 返回响应或错误
 **查询参数**:
 - `page`: 页码，默认1
 - `per_page`: 每页数量，默认20
+- `search`: 搜索关键词
 
 **响应数据**:
 ```json
 {
-  "items": [
-    {
-      "id": "integer",
-      "name": "string",
-      "slug": "string",
-      "created_at": "datetime"
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "items": [
+      {
+        "id": "integer",
+        "name": "string",
+        "slug": "string",
+        "created_at": "datetime"
+      }
+    ],
+    "pagination": {
+      "page": "integer",
+      "per_page": "integer",
+      "total": "integer",
+      "pages": "integer"
     }
-  ],
-  "pagination": {
-    "page": "integer",
-    "per_page": "integer",
-    "total": "integer",
-    "total_pages": "integer"
   }
 }
 ```
@@ -726,9 +934,13 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "name": "string",
-  "slug": "string"
+  "code": 201,
+  "message": "创建成功",
+  "data": {
+    "id": "integer",
+    "name": "string",
+    "slug": "string"
+  }
 }
 ```
 
@@ -744,7 +956,18 @@ API-->>Client : 返回响应或错误
 
 **请求参数**: 同创建标签接口
 
-**响应数据**: 同创建标签接口
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "更新成功",
+  "data": {
+    "id": "integer",
+    "name": "string",
+    "slug": "string"
+  }
+}
+```
 
 #### 删除标签接口
 
@@ -756,9 +979,21 @@ API-->>Client : 返回响应或错误
 **路径参数**:
 - `id`: 标签ID
 
-**响应数据**: 无
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "删除成功"
+}
+```
 
-### 媒体库API
+**章节来源**
+- [api/tags.py:7-170](file://company_cms_project/backend/app/api/tags.py#L7-L170)
+- [models/post.py:104-126](file://company_cms_project/backend/app/models/post.py#L104-L126)
+
+## 媒体库API
+
+### 媒体文件管理
 
 #### 媒体列表接口
 
@@ -771,39 +1006,39 @@ API-->>Client : 返回响应或错误
 - `page`: 页码，默认1
 - `per_page`: 每页数量，默认20
 - `mime_type`: MIME类型过滤
-- `folder_id`: 文件夹ID过滤
-- `search`: 搜索关键词
+- `search`: 搜索关键词，支持文件名和标题搜索
 
 **响应数据**:
 ```json
 {
-  "items": [
-    {
-      "id": "integer",
-      "filename": "string",
-      "original_name": "string",
-      "file_path": "string",
-      "file_url": "string",
-      "mime_type": "string",
-      "file_size": "integer",
-      "width": "integer",
-      "height": "integer",
-      "title": "string",
-      "alt_text": "string",
-      "description": "string",
-      "uploader": {
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "items": [
+      {
         "id": "integer",
-        "username": "string",
-        "display_name": "string"
-      },
-      "created_at": "datetime"
+        "filename": "string",
+        "original_name": "string",
+        "file_path": "string",
+        "file_url": "string",
+        "mime_type": "string",
+        "file_size": "integer",
+        "width": "integer",
+        "height": "integer",
+        "title": "string",
+        "alt_text": "string",
+        "description": "string",
+        "folder_id": "integer",
+        "uploader_id": "integer",
+        "created_at": "datetime"
+      }
+    ],
+    "pagination": {
+      "page": "integer",
+      "per_page": "integer",
+      "total": "integer",
+      "pages": "integer"
     }
-  ],
-  "pagination": {
-    "page": "integer",
-    "per_page": "integer",
-    "total": "integer",
-    "total_pages": "integer"
   }
 }
 ```
@@ -818,7 +1053,30 @@ API-->>Client : 返回响应或错误
 **路径参数**:
 - `id`: 媒体ID
 
-**响应数据**: 同媒体列表项对象
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "id": "integer",
+    "filename": "string",
+    "original_name": "string",
+    "file_path": "string",
+    "file_url": "string",
+    "mime_type": "string",
+    "file_size": "integer",
+    "width": "integer",
+    "height": "integer",
+    "title": "string",
+    "alt_text": "string",
+    "description": "string",
+    "folder_id": "integer",
+    "uploader_id": "integer",
+    "created_at": "datetime"
+  }
+}
+```
 
 #### 文件上传接口
 
@@ -831,36 +1089,20 @@ API-->>Client : 返回响应或错误
 **表单参数**:
 - `file`: 文件对象
 - `title`: 标题
+- `alt_text`: 替代文本
 - `description`: 描述
 
 **响应数据**:
 ```json
 {
-  "id": "integer",
-  "filename": "string",
-  "file_url": "string",
-  "file_size": "integer"
-}
-```
-
-#### 批量上传接口
-
-**HTTP方法**: POST  
-**URL**: `/api/v1/media/bulk-upload`  
-**认证**: 需要认证  
-**功能**: 批量上传文件
-
-**请求类型**: multipart/form-data  
-**表单参数**:
-- `files[]`: 文件数组
-- `titles[]`: 标题数组
-- `descriptions[]`: 描述数组
-
-**响应数据**:
-```json
-{
-  "uploaded_count": "integer",
-  "failed_count": "integer"
+  "code": 201,
+  "message": "上传成功",
+  "data": {
+    "id": "integer",
+    "filename": "string",
+    "file_url": "string",
+    "file_size": "integer"
+  }
 }
 ```
 
@@ -883,7 +1125,19 @@ API-->>Client : 返回响应或错误
 }
 ```
 
-**响应数据**: 同媒体详情接口
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "更新成功",
+  "data": {
+    "id": "integer",
+    "filename": "string",
+    "file_url": "string",
+    "file_size": "integer"
+  }
+}
+```
 
 #### 删除媒体接口
 
@@ -895,23 +1149,284 @@ API-->>Client : 返回响应或错误
 **路径参数**:
 - `id`: 媒体ID
 
-**响应数据**: 无
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "删除成功"
+}
+```
 
 **章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L167-L174)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L205-L212)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1023-L1076)
+- [api/media.py:35-247](file://company_cms_project/backend/app/api/media.py#L35-L247)
+- [models/post.py:129-169](file://company_cms_project/backend/app/models/post.py#L129-L169)
+
+## 菜单管理API
+
+### 菜单配置管理
+
+#### 获取菜单列表接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/menus`  
+**认证**: 无需认证  
+**功能**: 获取菜单列表（公开接口）
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": "string",
+        "title": "string",
+        "path": "string",
+        "pageKey": "string",
+        "order": "integer",
+        "visible": "boolean",
+        "isSystem": "boolean",
+        "createdAt": "datetime",
+        "updatedAt": "datetime"
+      }
+    ],
+    "updatedAt": "datetime"
+  }
+}
+```
+
+#### 保存菜单配置接口
+
+**HTTP方法**: PUT  
+**URL**: `/api/v1/menus`  
+**认证**: 需要认证  
+**功能**: 批量保存菜单配置
+
+**请求参数**:
+```json
+{
+  "items": [
+    {
+      "id": "string",
+      "title": "string",
+      "path": "string",
+      "pageKey": "string",
+      "order": "integer",
+      "visible": "boolean",
+      "isSystem": "boolean"
+    }
+  ]
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "菜单配置保存成功",
+  "data": {
+    "items": ["object"],
+    "updatedAt": "datetime"
+  }
+}
+```
+
+#### 添加菜单项接口
+
+**HTTP方法**: POST  
+**URL**: `/api/v1/menus`  
+**认证**: 需要认证  
+**功能**: 添加菜单项
+
+**请求参数**:
+```json
+{
+  "title": "string",
+  "path": "string",
+  "pageKey": "string",
+  "icon": "string",
+  "order": "integer",
+  "visible": "boolean"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "菜单添加成功",
+  "data": {
+    "id": "string",
+    "title": "string",
+    "path": "string",
+    "pageKey": "string",
+    "order": "integer",
+    "visible": "boolean",
+    "isSystem": "boolean",
+    "createdAt": "datetime",
+    "updatedAt": "datetime"
+  }
+}
+```
+
+#### 更新菜单项接口
+
+**HTTP方法**: PUT  
+**URL**: `/api/v1/menus/{menu_id}`  
+**认证**: 需要认证  
+**功能**: 更新菜单项
+
+**路径参数**:
+- `menu_id`: 菜单项ID
+
+**请求参数**:
+```json
+{
+  "title": "string",
+  "path": "string",
+  "pageKey": "string",
+  "icon": "string",
+  "order": "integer",
+  "visible": "boolean"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "菜单更新成功",
+  "data": {
+    "id": "string",
+    "title": "string",
+    "path": "string",
+    "pageKey": "string",
+    "order": "integer",
+    "visible": "boolean",
+    "isSystem": "boolean",
+    "createdAt": "datetime",
+    "updatedAt": "datetime"
+  }
+}
+```
+
+#### 删除菜单项接口
+
+**HTTP方法**: DELETE  
+**URL**: `/api/v1/menus/{menu_id}`  
+**认证**: 需要认证  
+**功能**: 删除菜单项
+
+**路径参数**:
+- `menu_id`: 菜单项ID
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "菜单删除成功"
+}
+```
+
+#### 获取页面列表接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/pages/list`  
+**认证**: 无需认证  
+**功能**: 获取可编辑的页面列表
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "key": "string",
+      "title": "string",
+      "path": "string"
+    }
+  ]
+}
+```
+
+**章节来源**
+- [api/menus.py:70-253](file://company_cms_project/backend/app/api/menus.py#L70-L253)
 
 ## 系统配置API
 
-### 系统配置管理API
+### 站点配置管理
+
+#### 获取配置接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/settings/{key_name}`  
+**认证**: 无需认证  
+**功能**: 获取站点配置
+
+**路径参数**:
+- `key_name`: 配置键名
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "integer",
+    "key_name": "string",
+    "value": "object",
+    "type": "string",
+    "description": "string",
+    "group_name": "string",
+    "updated_at": "datetime"
+  }
+}
+```
+
+#### 更新配置接口
+
+**HTTP方法**: PUT  
+**URL**: `/api/v1/settings/{key_name}`  
+**认证**: 需要认证  
+**功能**: 更新站点配置
+
+**路径参数**:
+- `key_name`: 配置键名
+
+**请求参数**:
+```json
+{
+  "value": "object",
+  "description": "string",
+  "group_name": "string"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "保存成功",
+  "data": {
+    "id": "integer",
+    "key_name": "string",
+    "value": "object",
+    "type": "string",
+    "description": "string",
+    "group_name": "string",
+    "updated_at": "datetime"
+  }
+}
+```
 
 #### 获取所有配置接口
 
 **HTTP方法**: GET  
 **URL**: `/api/v1/settings`  
 **认证**: 需要认证  
-**功能**: 获取所有系统配置
+**功能**: 获取所有配置
 
 **查询参数**:
 - `group`: 配置分组过滤
@@ -919,108 +1434,292 @@ API-->>Client : 返回响应或错误
 **响应数据**:
 ```json
 {
-  "site_name": "string",
-  "site_description": "string",
-  "site_logo": "string",
-  "contact_email": "string",
-  "contact_phone": "string",
-  "seo_title_template": "string",
-  "seo_description_template": "string",
-  "google_analytics_id": "string",
-  "enable_cache": "boolean",
-  "cache_timeout": "integer",
-  "upload_max_size": "integer",
-  "allowed_file_types": ["string"]
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": "integer",
+      "key_name": "string",
+      "value": "object",
+      "type": "string",
+      "description": "string",
+      "group_name": "string",
+      "updated_at": "datetime"
+    }
+  ]
 }
 ```
 
-#### 获取分组配置接口
+### 页面配置管理
+
+#### 获取首页配置接口
 
 **HTTP方法**: GET  
-**URL**: `/api/v1/settings/{group}`  
-**认证**: 需要认证  
-**功能**: 获取指定分组的配置
+**URL**: `/api/v1/pages/home`  
+**认证**: 无需认证  
+**功能**: 获取首页配置
 
-**路径参数**:
-- `group`: 配置分组名称
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "name": "string",
+    "components": ["object"],
+    "templateId": "string"
+  }
+}
+```
 
-**响应数据**: 同获取所有配置接口
-
-#### 更新配置接口
+#### 保存首页配置接口
 
 **HTTP方法**: PUT  
-**URL**: `/api/v1/settings`  
+**URL**: `/api/v1/pages/home`  
 **认证**: 需要认证  
-**功能**: 更新系统配置
+**功能**: 保存首页配置
 
 **请求参数**:
 ```json
 {
-  "site_name": "string",
-  "site_description": "string",
-  "site_logo": "string",
-  "contact_email": "string",
-  "contact_phone": "string",
-  "seo_title_template": "string",
-  "seo_description_template": "string",
-  "google_analytics_id": "string",
-  "enable_cache": "boolean",
-  "cache_timeout": "integer",
-  "upload_max_size": "integer",
-  "allowed_file_types": ["string"]
+  "name": "string",
+  "components": ["object"],
+  "templateId": "string"
 }
 ```
 
-**响应数据**: 无
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "首页配置保存成功",
+  "data": {
+    "id": "integer",
+    "key_name": "string",
+    "value": "object",
+    "type": "string",
+    "description": "string",
+    "group_name": "string",
+    "updated_at": "datetime"
+  }
+}
+```
 
-### 备份管理API
-
-#### 创建备份接口
-
-**HTTP方法**: POST  
-**URL**: `/api/v1/backup`  
-**认证**: 需要认证  
-**功能**: 创建数据库备份
-
-**请求参数**: 无  
-**响应数据**: 无
-
-#### 获取备份列表接口
+#### 获取页面配置接口
 
 **HTTP方法**: GET  
-**URL**: `/api/v1/backup`  
-**认证**: 需要认证  
-**功能**: 获取备份文件列表
+**URL**: `/api/v1/pages/{page_key}`  
+**认证**: 无需认证  
+**功能**: 获取指定页面配置
+
+**路径参数**:
+- `page_key`: 页面键名
 
 **响应数据**:
 ```json
-[
-  {
-    "id": "string",
-    "filename": "string",
-    "size": "integer",
-    "created_at": "datetime",
-    "description": "string"
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "name": "string",
+    "components": ["object"],
+    "templateId": "string"
   }
-]
+}
 ```
 
-#### 恢复备份接口
+#### 保存页面配置接口
 
-**HTTP方法**: POST  
-**URL**: `/api/v1/backup/{id}/restore`  
+**HTTP方法**: PUT  
+**URL**: `/api/v1/pages/{page_key}`  
 **认证**: 需要认证  
-**功能**: 恢复指定备份
+**功能**: 保存指定页面配置
 
 **路径参数**:
-- `id`: 备份ID
+- `page_key`: 页面键名
 
-**请求参数**: 无  
-**响应数据**: 无
+**请求参数**:
+```json
+{
+  "name": "string",
+  "components": ["object"],
+  "templateId": "string"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "页面配置保存成功",
+  "data": {
+    "id": "integer",
+    "key_name": "string",
+    "value": "object",
+    "type": "string",
+    "description": "string",
+    "group_name": "string",
+    "updated_at": "datetime"
+  }
+}
+```
+
+### LOGO配置管理
+
+#### 获取LOGO配置接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/settings/logo`  
+**认证**: 无需认证  
+**功能**: 获取LOGO配置
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "enabled": "boolean",
+    "displayMode": "string",
+    "logoImage": "string",
+    "logoImageWidth": "integer",
+    "logoImageHeight": "integer",
+    "logoText": "string",
+    "logoSubText": "string",
+    "textColor": "string",
+    "subTextColor": "string",
+    "fontSize": "integer",
+    "subFontSize": "integer",
+    "fontWeight": "integer",
+    "letterSpacing": "integer",
+    "imageGap": "integer",
+    "linkUrl": "string"
+  }
+}
+```
+
+#### 更新LOGO配置接口
+
+**HTTP方法**: PUT  
+**URL**: `/api/v1/settings/logo`  
+**认证**: 需要认证  
+**功能**: 更新LOGO配置
+
+**请求参数**:
+```json
+{
+  "enabled": "boolean",
+  "displayMode": "string",
+  "logoImage": "string",
+  "logoImageWidth": "integer",
+  "logoImageHeight": "integer",
+  "logoText": "string",
+  "logoSubText": "string",
+  "textColor": "string",
+  "subTextColor": "string",
+  "fontSize": "integer",
+  "subFontSize": "integer",
+  "fontWeight": "integer",
+  "letterSpacing": "integer",
+  "imageGap": "integer",
+  "linkUrl": "string"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "LOGO配置保存成功",
+  "data": {
+    "enabled": "boolean",
+    "displayMode": "string",
+    "logoImage": "string",
+    "logoImageWidth": "integer",
+    "logoImageHeight": "integer",
+    "logoText": "string",
+    "logoSubText": "string",
+    "textColor": "string",
+    "subTextColor": "string",
+    "fontSize": "integer",
+    "subFontSize": "integer",
+    "fontWeight": "integer",
+    "letterSpacing": "integer",
+    "imageGap": "integer",
+    "linkUrl": "string"
+  }
+}
+```
+
+### 底栏配置管理
+
+#### 获取底栏配置接口
+
+**HTTP方法**: GET  
+**URL**: `/api/v1/settings/footer`  
+**认证**: 无需认证  
+**功能**: 获取底栏配置
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "enabled": "boolean",
+    "height": "integer",
+    "backgroundColor": "string",
+    "textColor": "string",
+    "title": "string",
+    "description": "string",
+    "copyright": "string",
+    "elements": ["object"]
+  }
+}
+```
+
+#### 更新底栏配置接口
+
+**HTTP方法**: PUT  
+**URL**: `/api/v1/settings/footer`  
+**认证**: 需要认证  
+**功能**: 更新底栏配置
+
+**请求参数**:
+```json
+{
+  "enabled": "boolean",
+  "height": "integer",
+  "backgroundColor": "string",
+  "textColor": "string",
+  "title": "string",
+  "description": "string",
+  "copyright": "string",
+  "elements": ["object"]
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "底栏配置保存成功",
+  "data": {
+    "enabled": "boolean",
+    "height": "integer",
+    "backgroundColor": "string",
+    "textColor": "string",
+    "title": "string",
+    "description": "string",
+    "copyright": "string",
+    "elements": ["object"]
+  }
+}
+```
 
 **章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L226-L228)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1068-L1076)
+- [api/settings.py:7-360](file://company_cms_project/backend/app/api/settings.py#L7-L360)
+- [models/post.py:210-280](file://company_cms_project/backend/app/models/post.py#L210-L280)
 
 ## 数据模型
 
@@ -1035,57 +1734,24 @@ string email UK
 string password_hash
 string display_name
 string avatar
-tinyint status
+integer status
 datetime created_at
 datetime updated_at
 datetime last_login
 }
-ROLES {
-integer id PK
-string name UK
-string description
-datetime created_at
-}
-PERMISSIONS {
-integer id PK
-string name UK
-string code UK
-string description
-string module
-}
-USER_ROLES {
-integer user_id FK
-integer role_id FK
-}
-ROLE_PERMISSIONS {
-integer role_id FK
-integer permission_id FK
-}
-USERS ||--o{ USER_ROLES : has
-ROLES ||--o{ USER_ROLES : assigned
-ROLES ||--o{ ROLE_PERMISSIONS : has
-PERMISSIONS ||--o{ ROLE_PERMISSIONS : granted
-```
-
-**图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L716-L768)
-
-### 内容模型
-
-```mermaid
-erDiagram
 POSTS {
 integer id PK
 string type
 string title
 string slug UK
-longtext content
+text content
+string content_format
 text excerpt
 string featured_image
 integer author_id FK
 string status
-tinyint comment_status
-tinyint is_sticky
+integer comment_status
+integer is_sticky
 integer view_count
 integer sort_order
 integer parent_id
@@ -1110,27 +1776,6 @@ string name UK
 string slug UK
 datetime created_at
 }
-POST_CATEGORIES {
-integer post_id FK
-integer category_id FK
-}
-POST_TAGS {
-integer post_id FK
-integer tag_id FK
-}
-POSTS ||--o{ POST_CATEGORIES : belongs_to
-CATEGORIES ||--o{ POST_CATEGORIES : tagged_by
-POSTS ||--o{ POST_TAGS : has
-TAGS ||--o{ POST_TAGS : used_by
-```
-
-**图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L770-L836)
-
-### 媒体模型
-
-```mermaid
-erDiagram
 MEDIA {
 integer id PK
 string filename
@@ -1161,21 +1806,85 @@ datetime updated_at
 SITE_SETTINGS {
 integer id PK
 string key_name UK
-text value
+json value
 string type
 string description
 string group_name
 datetime updated_at
 }
-MEDIA ||--o{ PAGE_COMPONENTS : used_in
-USERS ||--o{ MEDIA : uploaded_by
+POSTS ||--o{ POST_CATEGORIES : belongs_to
+CATEGORIES ||--o{ POST_CATEGORIES : tagged_by
+POSTS ||--o{ POST_TAGS : has
+TAGS ||--o{ POST_TAGS : used_by
+USERS ||--o{ POSTS : authored
+USERS ||--o{ MEDIA : uploaded
+POSTS ||--o{ PAGE_COMPONENTS : configured
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L839-L889)
+- [models/post.py:5-280](file://company_cms_project/backend/app/models/post.py#L5-L280)
+- [models/user.py:5-47](file://company_cms_project/backend/app/models/user.py#L5-L47)
+
+### 内容模型关系
+
+```mermaid
+erDiagram
+POSTS {
+string type
+string title
+string slug UK
+text content
+string content_format
+text excerpt
+string featured_image
+integer author_id FK
+string status
+integer comment_status
+integer is_sticky
+integer view_count
+integer sort_order
+integer parent_id
+string template
+datetime published_at
+datetime created_at
+datetime updated_at
+}
+CATEGORIES {
+string name
+string slug UK
+text description
+integer parent_id
+integer sort_order
+string icon
+datetime created_at
+}
+TAGS {
+string name UK
+string slug UK
+datetime created_at
+}
+POST_CATEGORIES {
+integer post_id FK
+integer category_id FK
+}
+POST_TAGS {
+integer post_id FK
+integer tag_id FK
+}
+USERS ||--o{ POSTS : authored
+USERS ||--o{ MEDIA : uploaded
+POSTS ||--o{ POST_CATEGORIES : belongs_to
+CATEGORIES ||--o{ POST_CATEGORIES : tagged_by
+POSTS ||--o{ POST_TAGS : has
+TAGS ||--o{ POST_TAGS : used_by
+```
+
+**图表来源**
+- [models/post.py:5-181](file://company_cms_project/backend/app/models/post.py#L5-L181)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L714-L889)
+- [models/post.py:5-280](file://company_cms_project/backend/app/models/post.py#L5-L280)
+- [models/user.py:5-47](file://company_cms_project/backend/app/models/user.py#L5-L47)
 
 ## 错误处理
 
@@ -1187,7 +1896,6 @@ USERS ||--o{ MEDIA : uploaded_by
 {
   "code": "integer",
   "message": "string",
-  "error": "string",
   "data": "object",
   "meta": {
     "timestamp": "integer",
@@ -1232,7 +1940,7 @@ ReturnSuccess --> End
 ```
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L974-L982)
+- [app/__init__.py:50-57](file://company_cms_project/backend/app/__init__.py#L50-L57)
 
 ## 性能优化
 
@@ -1270,7 +1978,7 @@ ReturnSuccess --> End
    - 使用缓存减少重复计算
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1362-L1380)
+- [config.py:31-33](file://company_cms_project/backend/config.py#L31-L33)
 
 ## 安全考虑
 
@@ -1319,7 +2027,8 @@ ReturnSuccess --> End
    - 存储路径限制
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1078-L1140)
+- [config.py:19-29](file://company_cms_project/backend/config.py#L19-L29)
+- [auth/routes.py:14-23](file://company_cms_project/backend/app/auth/routes.py#L14-L23)
 
 ## 部署与监控
 
@@ -1363,7 +2072,8 @@ ReturnSuccess --> End
 - **异地备份**: 云存储
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1141-L1356)
+- [config.py:35-40](file://company_cms_project/backend/config.py#L35-L40)
+- [app/__init__.py:31-34](file://company_cms_project/backend/app/__init__.py#L31-L34)
 
 ## 故障排除指南
 
@@ -1414,10 +2124,10 @@ ReturnSuccess --> End
    - 验证配置文件
 
 **章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L515-L571)
+- [config.py:24-29](file://company_cms_project/backend/config.py#L24-L29)
 
 ## 结论
 
-本API接口文档详细描述了企业网站CMS系统的核心功能和接口规范。系统采用现代化的技术架构，提供了完整的RESTful API接口，支持用户认证、内容管理和系统配置等核心功能。通过合理的安全设计、性能优化和监控机制，确保系统能够稳定高效地运行。
+本API接口文档详细描述了企业网站CMS系统的核心功能和接口规范。系统采用现代化的技术架构，提供了完整的RESTful API接口，支持用户认证、用户管理、内容管理、媒体库、菜单管理和系统配置等核心功能。通过合理的安全设计、性能优化和监控机制，确保系统能够稳定高效地运行。
 
 开发者可以根据本接口文档快速集成和使用系统API，同时也可以根据实际需求进行扩展和定制。建议在生产环境中启用HTTPS、实施严格的权限控制，并建立完善的监控和备份机制。

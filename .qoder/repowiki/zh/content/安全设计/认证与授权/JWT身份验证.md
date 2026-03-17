@@ -2,10 +2,24 @@
 
 <cite>
 **本文档引用的文件**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md)
-- [企业网站CMS系统开发需求文档.ini](file://企业网站CMS系统开发需求文档.ini)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py)
+- [__init__.py](file://company_cms_project/backend/app/__init__.py)
+- [config.py](file://company_cms_project/backend/config.py)
+- [requirements.txt](file://company_cms_project/backend/requirements.txt)
+- [.env](file://company_cms_project/backend/.env)
+- [user.py](file://company_cms_project/backend/app/models/user.py)
+- [auth.ts](file://company_cms_project/frontend/src/api/auth.ts)
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts)
+- [企业网站CMS系统详细需求文档.md](file://docs/企业网站CMS系统详细需求文档.md)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 更新了JWT配置和实现细节，反映Flask-JWT-Extended的实际使用
+- 修正了Access Token和Refresh Token的有效期配置
+- 补充了完整的认证接口实现分析
+- 更新了前端Token管理的最佳实践
+- 添加了实际的代码示例和配置说明
 
 ## 目录
 1. [简介](#简介)
@@ -43,7 +57,6 @@ Middleware[中间件]
 end
 subgraph "服务层"
 JWTService[JWT服务]
-Redis[Redis缓存]
 DB[(SQLite数据库)]
 end
 FE --> Flask
@@ -51,19 +64,13 @@ AuthUI --> AuthModule
 TokenStore --> FE
 Flask --> AuthModule
 AuthModule --> JWTService
-JWTService --> Redis
-AuthModule --> DB
+JWTService --> DB
 API --> AuthModule
 Middleware --> AuthModule
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L92-L105)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1078-L1098)
-
-**章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L92-L105)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1078-L1098)
+- [企业网站CMS系统详细需求文档.md](file://docs/企业网站CMS系统详细需求文档.md#L1078-L1098)
 
 ## 核心组件
 
@@ -72,14 +79,14 @@ Middleware --> AuthModule
 系统采用Flask-JWT-Extended扩展实现JWT认证，核心配置包括：
 
 **访问令牌配置**：
-- 有效期：2小时
-- 签名算法：HS256
-- 存储位置：LocalStorage/Cookie
+- 有效期：2小时（7200秒）
+- 签名算法：HS256（默认）
+- 存储位置：LocalStorage
 
 **刷新令牌配置**：
-- 有效期：7天
-- 签名算法：HS256
-- 存储位置：HttpOnly Cookie
+- 有效期：30天
+- 签名算法：HS256（默认）
+- 存储位置：HttpOnly Cookie（建议）
 
 **密钥管理**：
 - JWT_SECRET_KEY：生产环境专用密钥
@@ -87,8 +94,8 @@ Middleware --> AuthModule
 - 安全存储
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1267-L1271)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1082-L1086)
+- [config.py](file://company_cms_project/backend/config.py#L19-L22)
+- [.env](file://company_cms_project/backend/.env#L9-L12)
 
 ### 认证接口设计
 
@@ -99,7 +106,6 @@ sequenceDiagram
 participant Client as 客户端
 participant AuthAPI as 认证API
 participant JWTService as JWT服务
-participant Redis as Redis缓存
 participant DB as 数据库
 Client->>AuthAPI : POST /api/v1/auth/login
 AuthAPI->>DB : 验证用户凭据
@@ -108,17 +114,15 @@ AuthAPI->>JWTService : 生成Access Token
 JWTService-->>AuthAPI : Access Token
 AuthAPI->>JWTService : 生成Refresh Token
 JWTService-->>AuthAPI : Refresh Token
-AuthAPI->>Redis : 存储Token到黑名单
-Redis-->>AuthAPI : 存储成功
 AuthAPI-->>Client : 返回Access Token + Refresh Token
-Note over Client,Redis : Token存储在客户端
+Note over Client,DB : Token存储在客户端
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1002-L1011)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L153)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1002-L1011)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L25-L153)
 
 ## 架构概览
 
@@ -133,9 +137,8 @@ Validate --> Valid{凭据有效?}
 Valid --> |否| Error[返回错误]
 Valid --> |是| GenerateAccess[生成Access Token]
 GenerateAccess --> GenerateRefresh[生成Refresh Token]
-GenerateRefresh --> StoreTokens[存储Token信息]
-StoreTokens --> AccessToken[Access Token<br/>2小时有效期]
-StoreTokens --> RefreshToken[Refresh Token<br/>7天有效期]
+GenerateRefresh --> AccessToken[Access Token<br/>2小时有效期]
+GenerateRefresh --> RefreshToken[Refresh Token<br/>30天有效期]
 AccessToken --> Client[发送给客户端]
 RefreshToken --> Client
 Client --> UseAPI[API调用]
@@ -149,7 +152,7 @@ GenerateNew --> Success
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1082-L1086)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L194)
 
 ### Token存储策略
 
@@ -166,7 +169,7 @@ GenerateNew --> Success
 - SameSite属性防止CSRF攻击
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1085-L1086)
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts#L17-L28)
 
 ## 详细组件分析
 
@@ -177,13 +180,13 @@ GenerateNew --> Success
 系统使用Flask-JWT-Extended扩展实现JWT的生成和验证：
 
 **Access Token生成**：
-- 包含用户标识信息
+- 包含用户标识信息（用户ID）
 - 短有效期（2小时）
 - 用于API访问授权
 
 **Refresh Token生成**：
-- 包含用户标识信息
-- 长有效期（7天）
+- 包含用户标识信息（用户ID）
+- 长有效期（30天）
 - 用于获取新的Access Token
 
 #### Token验证流程
@@ -199,14 +202,11 @@ Verify --> SignatureOK{签名有效?}
 SignatureOK --> |否| InvalidToken[401 无效Token]
 SignatureOK --> |是| Expired{Token是否过期?}
 Expired --> |是| ExpiredToken[401 Token已过期]
-Expired --> |否| BlacklistCheck[检查黑名单]
-BlacklistCheck --> Blacklisted{在黑名单中?}
-BlacklistCheck --> |是| Revoked[401 Token已撤销]
-Blacklisted --> |否| Success[验证成功]
+Expired --> |否| Success[验证成功]
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1082-L1086)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L197-L224)
 
 #### Token刷新机制
 
@@ -222,44 +222,55 @@ Blacklisted --> |否| Success[验证成功]
 2. 验证Refresh Token有效性
 3. 生成新的Access Token
 4. 更新客户端存储
-5. 维护Token黑名单
+5. 维护Token状态
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1083-L1084)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L174-L194)
 
-### Token黑名单机制
+### 认证接口实现
 
-#### 黑名单实现策略
+#### 登录流程
 
-系统采用Redis实现Token黑名单，支持以下场景：
+系统提供完整的用户登录功能：
 
-**Token撤销场景**：
-- 用户主动登出
-- 密码修改
-- 账户禁用
-- 安全事件触发
-
-**黑名单管理**：
-- 存储已撤销的Token标识
-- 设置过期时间管理内存
-- 支持批量清理过期条目
-
-#### 多设备登录管理
-
-系统支持多设备登录场景：
-
-**设备识别**：
-- 基于User-Agent识别设备
-- Token绑定特定设备信息
-- 支持设备切换通知
-
-**冲突处理**：
-- 新设备登录时撤销旧设备Token
-- 支持单点登录配置
-- 异常登录检测和通知
+**登录验证步骤**：
+1. 接收用户名/邮箱和密码
+2. 支持用户名或邮箱登录
+3. 验证用户凭据
+4. 检查账户状态
+5. 更新最后登录时间
+6. 生成Access Token和Refresh Token
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1094-L1098)
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L105-L153)
+
+#### 注册流程
+
+系统提供用户注册功能：
+
+**注册验证步骤**：
+1. 验证必填字段
+2. 验证邮箱格式
+3. 验证密码强度
+4. 检查用户名和邮箱唯一性
+5. 创建用户并加密密码
+6. 生成Access Token和Refresh Token
+
+**章节来源**
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L25-L96)
+
+#### 用户信息获取
+
+系统提供获取当前用户信息的功能：
+
+**获取流程**：
+1. 验证JWT Token
+2. 获取当前用户ID
+3. 查询用户信息
+4. 返回用户数据
+
+**章节来源**
+- [routes.py](file://company_cms_project/backend/app/auth/routes.py#L197-L224)
 
 ### 前端Token管理
 
@@ -288,7 +299,7 @@ Blacklisted --> |否| Success[验证成功]
 - 防止恶意脚本执行
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1106-L1110)
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts#L17-L53)
 
 ## 依赖关系分析
 
@@ -299,31 +310,31 @@ Blacklisted --> |否| Success[验证成功]
 ```mermaid
 graph LR
 subgraph "核心依赖"
-Flask[Flask 2.3+]
-JWTExt[Flask-JWT-Extended 4.5.2]
+Flask[Flask 3.1.2]
+JWTExt[Flask-JWT-Extended 4.7.1]
 PyJWT[PyJWT]
-Redis[Redis 6.0+]
-end
-subgraph "安全依赖"
-bcrypt[bcrypt 4.0.1]
-FlaskLogin[Flask-Login 0.6.2]
-FlaskWTF[Flask-WTF 1.1.1]
+bcrypt[bcrypt 5.0.0]
+SQLAlchemy[Flask-SQLAlchemy 3.1.1]
+CORS[Flask-CORS 6.0.2]
+dotenv[python-dotenv 1.2.1]
 end
 subgraph "工具依赖"
-SQLAlchemy[Flask-SQLAlchemy 3.0.5]
-Migrate[Flask-Migrate 4.0.5]
-Pillow[Pillow 10.0.0]
+Migrate[Flask-Migrate 4.1.0]
+Pillow[Pillow 11.3.0]
+Waitress[Waitress 3.0.2]
 end
 Flask --> JWTExt
-Flask --> FlaskLogin
-Flask --> FlaskWTF
-JWTExt --> PyJWT
-Flask --> Redis
 Flask --> SQLAlchemy
+Flask --> CORS
+JWTExt --> PyJWT
+Flask --> bcrypt
+Flask --> Migrate
+Flask --> Pillow
+Flask --> Waitress
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1304-L1322)
+- [requirements.txt](file://company_cms_project/backend/requirements.txt#L1-L10)
 
 ### 配置管理
 
@@ -331,9 +342,9 @@ Flask --> SQLAlchemy
 
 **配置项说明**：
 - JWT_SECRET_KEY：JWT签名密钥
-- JWT_ACCESS_TOKEN_EXPIRES：Access Token有效期
-- JWT_REFRESH_TOKEN_EXPIRES：Refresh Token有效期
-- REDIS_URL：Redis连接地址
+- JWT_ACCESS_TOKEN_EXPIRES：Access Token有效期（秒）
+- JWT_REFRESH_TOKEN_EXPIRES：Refresh Token有效期（天）
+- DATABASE_URL：数据库连接地址
 
 **环境分离**：
 - development：开发环境配置
@@ -341,16 +352,17 @@ Flask --> SQLAlchemy
 - testing：测试环境配置
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1234-L1301)
+- [config.py](file://company_cms_project/backend/config.py#L8-L40)
+- [.env](file://company_cms_project/backend/.env#L1-L19)
 
 ## 性能考虑
 
 ### Token性能优化
 
 **内存使用优化**：
-- Redis缓存Token状态
+- JWT是无状态的，无需服务器端存储
 - 合理设置过期时间
-- 批量清理过期Token
+- 减少不必要的Token生成
 
 **网络传输优化**：
 - Token大小控制
@@ -358,16 +370,16 @@ Flask --> SQLAlchemy
 - 减少不必要的请求
 
 **并发处理**：
-- Redis集群支持
-- Token验证异步处理
+- JWT验证异步处理
 - 缓存命中率优化
+- 并发安全的Token生成
 
 ### 安全性能平衡
 
 **安全与性能权衡**：
 - Token验证频率控制
-- 缓存策略优化
 - 加密算法性能评估
+- 网络传输安全保证
 
 ## 故障排除指南
 
@@ -381,7 +393,7 @@ Flask --> SQLAlchemy
 **Token验证失败**：
 - 检查签名密钥一致性
 - 验证Token格式正确性
-- 确认Redis连接状态
+- 确认JWT扩展正确初始化
 
 **多设备冲突**：
 - 检查设备识别逻辑
@@ -397,11 +409,11 @@ Flask --> SQLAlchemy
 
 **性能监控**：
 - Token验证响应时间
-- Redis连接池使用情况
 - 内存使用情况
+- 数据库连接池使用情况
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1128-L1139)
+- [config.py](file://company_cms_project/backend/config.py#L8-L40)
 
 ## 结论
 
@@ -409,12 +421,12 @@ Flask --> SQLAlchemy
 
 **安全性保障**：
 - 双令牌模型提供多层次保护
-- Token黑名单机制支持快速撤销
+- 无状态设计简化服务器架构
 - 多设备登录冲突处理
 - 前后端双重安全防护
 
 **性能优化**：
-- Redis缓存提升验证速度
+- 无状态设计提升系统性能
 - 合理的Token有效期设置
 - 异步处理减少延迟
 
@@ -422,5 +434,10 @@ Flask --> SQLAlchemy
 - 清晰的架构设计
 - 完善的错误处理机制
 - 灵活的配置管理
+
+**扩展性**：
+- 支持Token黑名单机制
+- 可配置的Token存储策略
+- 易于集成的认证接口
 
 该系统为CMS平台提供了可靠的身份认证基础，支持未来的功能扩展和安全增强。

@@ -231,15 +231,19 @@ const PageEditor: React.FC = () => {
     loadPageList();
   }, []);
 
-  // 从 URL 参数获取当前页面
+  // 从 URL 参数获取当前页面（同步获取，避免时序问题）
+  const pageKeyFromUrl = searchParams.get('page') || 'home';
+  
+  // 当 URL 参数变化时更新 currentPageKey
   useEffect(() => {
-    const pageKey = searchParams.get('page') || 'home';
-    setCurrentPageKey(pageKey);
-  }, [searchParams]);
+    setCurrentPageKey(pageKeyFromUrl);
+  }, [pageKeyFromUrl]);
 
-  // 加载页面数据
+  // 加载页面数据 - 只依赖 currentPageKey，避免重复加载
   useEffect(() => {
     const loadPageData = async () => {
+      if (!currentPageKey) return;
+      
       setLoading(true);
       // 检查本地草稿
       const draftKey = `page_draft_${currentPageKey}`;
@@ -262,45 +266,46 @@ const PageEditor: React.FC = () => {
       
       // 从后端加载
       try {
+        console.log(`[PageEditor] 正在加载页面: ${currentPageKey}`);
         const res = await getPageConfig(currentPageKey);
+        console.log(`[PageEditor] 加载结果:`, res);
         if (res.data && res.data.components && res.data.components.length > 0) {
           setComponents(res.data.components);
           setPageName(res.data.name || currentPageKey);
           setTemplateId(res.data.templateId || null);
+          console.log(`[PageEditor] 成功加载 ${res.data.components.length} 个组件`);
         } else {
           // 新页面，清空内容
+          console.log(`[PageEditor] 页面为空或不存在，初始化为新页面`);
           setComponents([]);
-          const pageInfo = pageList.find(p => p.key === currentPageKey);
           // 为特定页面设置默认名称
           const defaultNames: Record<string, string> = {
             'solutions': '解决方案',
             'cases': '成功案例',
             'about': '关于我们'
           };
-          setPageName(defaultNames[currentPageKey] || pageInfo?.title || currentPageKey);
+          setPageName(defaultNames[currentPageKey] || currentPageKey);
           setTemplateId(null);
         }
       } catch (e) {
+        console.error('[PageEditor] 加载页面失败:', e);
         // 页面不存在，初始化为空
         setComponents([]);
-        const pageInfo = pageList.find(p => p.key === currentPageKey);
-        // 为特定页面设置默认名称
         const defaultNames: Record<string, string> = {
           'solutions': '解决方案',
           'cases': '成功案例',
           'about': '关于我们'
         };
-        setPageName(defaultNames[currentPageKey] || pageInfo?.title || currentPageKey);
+        setPageName(defaultNames[currentPageKey] || currentPageKey);
         setTemplateId(null);
       } finally {
         setLoading(false);
       }
     };
     
-    if (currentPageKey) {
-      loadPageData();
-    }
-  }, [currentPageKey, pageList]);
+    loadPageData();
+    // 注意：不依赖 pageList，避免 pageList 加载后触发重复加载
+  }, [currentPageKey]);
 
   const selectedComponent = components.find((c) => c.id === selectedId);
 
@@ -429,7 +434,9 @@ const PageEditor: React.FC = () => {
         updatedAt: new Date().toISOString(),
       };
       
+      console.log(`[PageEditor] 发布页面: ${currentPageKey}`, pageData);
       await savePageConfig(currentPageKey, pageData);
+      console.log(`[PageEditor] 页面发布成功`);
       
       // 发布成功后清除本地草稿
       localStorage.removeItem(`page_draft_${currentPageKey}`);
@@ -437,7 +444,7 @@ const PageEditor: React.FC = () => {
       const pageInfo = pageList.find(p => p.key === currentPageKey);
       message.success(`「${pageInfo?.title || currentPageKey}」页面已成功发布！`);
     } catch (error) {
-      console.error('Publish failed:', error);
+      console.error('[PageEditor] 发布失败:', error);
       message.error('发布失败，请重试');
     } finally {
       setSaving(false);
@@ -1081,6 +1088,19 @@ const PageEditor: React.FC = () => {
             <Form.Item label="圆角 (px)">
               <InputNumber value={props.borderRadius} onChange={(v) => handlePropsChange('borderRadius', v)} style={{ width: '100%' }} />
             </Form.Item>
+            <Form.Item label="宽高比">
+              <Select 
+                value={props.aspectRatio || 'auto'} 
+                onChange={(v) => handlePropsChange('aspectRatio', v)} 
+                options={[
+                  { value: 'auto', label: '原始比例' },
+                  { value: '1:1', label: '1:1 正方形' },
+                  { value: '4:3', label: '4:3 标准' },
+                  { value: '16:9', label: '16:9 宽屏' },
+                  { value: '3:4', label: '3:4 竖向' },
+                ]} 
+              />
+            </Form.Item>
           </>
         )}
 
@@ -1473,6 +1493,27 @@ const PageEditor: React.FC = () => {
                 ]} />
               </Form.Item>
             )}
+            
+            {/* 子组件统一高度 */}
+            <Form.Item label="子组件统一高度">
+              <Select 
+                value={props.childHeight || 'auto'} 
+                onChange={(v) => handlePropsChange('childHeight', v)} 
+                options={[
+                  { value: 'auto', label: '自适应' },
+                  { value: 80, label: '80px' },
+                  { value: 100, label: '100px' },
+                  { value: 120, label: '120px' },
+                  { value: 150, label: '150px' },
+                  { value: 180, label: '180px' },
+                  { value: 200, label: '200px' },
+                  { value: 250, label: '250px' },
+                  { value: 300, label: '300px' },
+                  { value: 350, label: '350px' },
+                  { value: 400, label: '400px' },
+                ]} 
+              />
+            </Form.Item>
             
             {/* 子组件管理 */}
             <Form.Item label="子组件">

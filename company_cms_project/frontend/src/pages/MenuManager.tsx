@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Table, Button, Space, Typography, Modal, Form, Input, 
   InputNumber, Switch, message, Popconfirm, Tag, Card 
@@ -18,6 +18,7 @@ const MenuManager: React.FC = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingMenu, setEditingMenu] = useState<MenuItem | null>(null);
+  const editingMenuRef = useRef<MenuItem | null>(null);  // 使用 ref 存储当前编辑的菜单
   const [form] = Form.useForm();
 
   // 加载菜单数据
@@ -41,16 +42,40 @@ const MenuManager: React.FC = () => {
   const openModal = (menu?: MenuItem) => {
     if (menu) {
       setEditingMenu(menu);
-      form.setFieldsValue(menu);
+      editingMenuRef.current = menu;  // 同步更新 ref
     } else {
       setEditingMenu(null);
-      form.resetFields();
-      form.setFieldsValue({
-        order: menus.length + 1,
-        visible: true,
-      });
+      editingMenuRef.current = null;  // 同步更新 ref
     }
     setModalVisible(true);
+  };
+
+  // Modal 完全打开后设置表单值（解决 destroyOnClose 导致的问题）
+  const handleModalOpenChange = (open: boolean) => {
+    if (open) {
+      // Modal 打开后，使用 setTimeout 确保 Form 已渲染
+      setTimeout(() => {
+        const currentMenu = editingMenuRef.current;  // 使用 ref 获取最新值
+        if (currentMenu) {
+          // 编辑模式：设置已有数据
+          console.log('[MenuManager] 设置编辑数据:', currentMenu);
+          form.setFieldsValue({
+            title: currentMenu.title,
+            path: currentMenu.path,
+            pageKey: currentMenu.pageKey,
+            order: currentMenu.order,
+            visible: currentMenu.visible,
+          });
+        } else {
+          // 新增模式：设置默认值
+          form.resetFields();
+          form.setFieldsValue({
+            order: menus.length + 1,
+            visible: true,
+          });
+        }
+      }, 0);
+    }
   };
 
   // 保存菜单
@@ -233,6 +258,7 @@ const MenuManager: React.FC = () => {
         open={modalVisible}
         onOk={handleSave}
         onCancel={() => setModalVisible(false)}
+        afterOpenChange={handleModalOpenChange}
         destroyOnClose
       >
         <Form

@@ -10,7 +10,7 @@ export interface ApiResponse<T = any> {
 
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1',
-  timeout: 10000,
+  timeout: 60000, // 60秒超时，适应 Render 免费版冷启动
 });
 
 // 处理登录过期的统一函数

@@ -5,7 +5,17 @@
 - [企业网站CMS系统开发需求文档.ini](file://企业网站CMS系统开发需求文档.ini)
 - [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md)
 - [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md)
+- [settings.py](file://backend/app/api/settings.py)
+- [logo.ts](file://frontend/src/api/logo.ts)
+- [request.ts](file://frontend/src/utils/request.ts)
+- [test_logo_api.py](file://tests/test_logo_api.py)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 更新了LOGO配置API的类型安全性说明，反映了前端类型系统的改进
+- 增强了API响应格式一致性的文档描述
+- 补充了内部ApiResponse类型的使用说明
 
 ## 目录
 1. [简介](#简介)
@@ -24,6 +34,8 @@
 
 系统配置API采用RESTful设计原则，基于JWT身份认证，支持JSON数据格式，为管理员提供了直观的配置管理界面和强大的功能扩展能力。
 
+**更新** 改进了LOGO配置API的类型安全性，通过引入内部ApiResponse类型确保前后端响应格式的一致性和类型安全。
+
 ## 项目结构
 
 CMS系统采用前后端分离架构，系统配置API作为后端服务的重要组成部分，位于Flask应用的API蓝图中。
@@ -34,6 +46,8 @@ subgraph "前端层"
 FE[前端管理界面]
 Auth[认证模块]
 ConfigUI[配置管理UI]
+LogoAPI[LOGO配置API]
+RequestUtil[请求工具]
 end
 subgraph "后端层"
 API[API蓝图]
@@ -49,7 +63,9 @@ AuditLog[审计日志表]
 end
 FE --> API
 Auth --> API
-ConfigUI --> ConfigAPI
+ConfigUI --> LogoAPI
+LogoAPI --> RequestUtil
+RequestUtil --> API
 API --> Settings
 Settings --> Cache
 Settings --> DB
@@ -58,12 +74,12 @@ DB --> AuditLog
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L940-L1076)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L92-L105)
+- [企业网站CMS系统详细需求文档.md:940-1076](file://企业网站CMS系统详细需求文档.md#L940-L1076)
+- [开发计划表_2月4日-2月12日.md:92-105](file://开发计划表_2月4日-2月12日.md#L92-L105)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L22-L57)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L92-L105)
+- [企业网站CMS系统详细需求文档.md:22-57](file://企业网站CMS系统详细需求文档.md#L22-L57)
+- [开发计划表_2月4日-2月12日.md:92-105](file://开发计划表_2月4日-2月12日.md#L92-L105)
 
 ## 核心组件
 
@@ -87,9 +103,14 @@ DB --> AuditLog
 - **配置模板**：提供预设的配置模板
 - **配置验证**：批量操作前的数据验证
 
+### 类型安全增强
+- **内部ApiResponse类型**：统一前后端响应格式，确保类型安全
+- **前端类型定义**：使用TypeScript接口定义API响应结构
+- **响应拦截器**：自动解包响应数据，简化前端使用
+
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L879-L889)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L226-L233)
+- [企业网站CMS系统详细需求文档.md:879-889](file://企业网站CMS系统详细需求文档.md#L879-L889)
+- [开发计划表_2月4日-2月12日.md:226-233](file://开发计划表_2月4日-2月12日.md#L226-L233)
 
 ## 架构概览
 
@@ -129,15 +150,21 @@ class BackupManager {
 +restore_backup(backup_id) bool
 +delete_backup(backup_id) bool
 }
+class ApiResponse {
++code : number
++message : string
++data : any
+}
 ConfigManager --> SettingValidator : "使用"
 ConfigManager --> AuditLogger : "使用"
 ConfigManager --> ConfigCache : "使用"
 ConfigManager --> BackupManager : "使用"
+ConfigManager --> ApiResponse : "返回"
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L879-L889)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1068-L1076)
+- [企业网站CMS系统详细需求文档.md:879-889](file://企业网站CMS系统详细需求文档.md#L879-L889)
+- [企业网站CMS系统详细需求文档.md:1068-1076](file://企业网站CMS系统详细需求文档.md#L1068-L1076)
 
 ## 详细组件分析
 
@@ -156,7 +183,18 @@ ConfigManager --> BackupManager : "使用"
 | `/api/v1/backup` | GET | 获取备份列表 |
 | `/api/v1/backup/:id/restore` | POST | 恢复配置备份 |
 
+#### LOGO配置专用接口
+
+**更新** LOGO配置API现在使用统一的响应格式，确保类型安全和一致性。
+
+| 接口 | 方法 | 描述 |
+|------|------|------|
+| `/api/v1/settings/logo` | GET | 获取LOGO配置（公开接口） |
+| `/api/v1/settings/logo` | PUT | 更新LOGO配置（需要登录） |
+
 #### 请求响应格式
+
+**更新** 所有API接口现在使用统一的响应格式，通过内部ApiResponse类型确保类型安全。
 
 **请求格式**：
 ```json
@@ -169,21 +207,116 @@ ConfigManager --> BackupManager : "使用"
 ```
 
 **响应格式**：
+```typescript
+interface ApiResponse<T = any> {
+  code: number;
+  message: string;
+  data: T;
+}
+```
+
+**章节来源**
+- [企业网站CMS系统详细需求文档.md:942-998](file://企业网站CMS系统详细需求文档.md#L942-L998)
+- [企业网站CMS系统详细需求文档.md:1068-1076](file://企业网站CMS系统详细需求文档.md#L1068-L1076)
+
+### LOGO配置API详细规范
+
+**更新** LOGO配置API现在具有完整的类型安全保证，使用内部ApiResponse类型确保前后端响应格式一致。
+
+#### GET /settings/logo 接口
+
+**功能**：获取网站LOGO配置信息
+
+**请求示例**：
+```typescript
+// 前端调用
+const response = await getLogoConfig();
+// response: ApiResponse<LogoConfig>
+```
+
+**响应格式**：
 ```json
 {
   "code": 200,
   "message": "success",
-  "data": {},
-  "meta": {
-    "timestamp": 1234567890,
-    "request_id": "uuid"
+  "data": {
+    "enabled": true,
+    "displayMode": "textAndImage",
+    "logoImage": "/media/2026/03/test.png",
+    "logoImageWidth": 50,
+    "logoImageHeight": 50,
+    "logoText": "TEST",
+    "logoSubText": "CMS",
+    "textColor": "#ff0000",
+    "subTextColor": "#001529",
+    "fontSize": 24,
+    "subFontSize": 24,
+    "fontWeight": 800,
+    "letterSpacing": 2,
+    "imageGap": 15,
+    "linkUrl": "/"
+  }
+}
+```
+
+#### PUT /settings/logo 接口
+
+**功能**：更新LOGO配置信息
+
+**请求示例**：
+```typescript
+// 前端调用
+const config = {
+  enabled: true,
+  displayMode: 'textAndImage',
+  logoImage: '/media/2026/03/test.png',
+  logoImageWidth: 50,
+  logoImageHeight: 50,
+  logoText: 'TEST',
+  logoSubText: 'CMS',
+  textColor: '#ff0000',
+  subTextColor: '#001529',
+  fontSize: 24,
+  subFontSize: 24,
+  fontWeight: 800,
+  letterSpacing: 2,
+  imageGap: 15,
+  linkUrl: '/'
+};
+
+const response = await updateLogoConfig(config);
+// response: ApiResponse<LogoConfig>
+```
+
+**响应格式**：
+```json
+{
+  "code": 200,
+  "message": "LOGO 配置保存成功",
+  "data": {
+    "enabled": true,
+    "displayMode": "textAndImage",
+    "logoImage": "/media/2026/03/test.png",
+    "logoImageWidth": 50,
+    "logoImageHeight": 50,
+    "logoText": "TEST",
+    "logoSubText": "CMS",
+    "textColor": "#ff0000",
+    "subTextColor": "#001529",
+    "fontSize": 24,
+    "subFontSize": 24,
+    "fontWeight": 800,
+    "letterSpacing": 2,
+    "imageGap": 15,
+    "linkUrl": "/"
   }
 }
 ```
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L942-L998)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1068-L1076)
+- [settings.py:175-263](file://backend/app/api/settings.py#L175-L263)
+- [logo.ts:1-40](file://frontend/src/api/logo.ts#L1-L40)
+- [request.ts:5-9](file://frontend/src/utils/request.ts#L5-L9)
 
 ### 配置分类管理
 
@@ -256,7 +389,7 @@ ConfigManager --> BackupManager : "使用"
 | lazy_loading_enabled | boolean | 懒加载开关 | true |
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L390-L444)
+- [企业网站CMS系统详细需求文档.md:390-444](file://企业网站CMS系统详细需求文档.md#L390-L444)
 
 ### 配置验证规则
 
@@ -292,7 +425,7 @@ Success --> End
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1099-L1127)
+- [企业网站CMS系统详细需求文档.md:1099-1127](file://企业网站CMS系统详细需求文档.md#L1099-L1127)
 
 ### 批量配置处理
 
@@ -328,7 +461,7 @@ API-->>Client : 返回批量更新结果
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1068-L1076)
+- [企业网站CMS系统详细需求文档.md:1068-1076](file://企业网站CMS系统详细需求文档.md#L1068-L1076)
 
 ### 审计日志和回滚机制
 
@@ -369,11 +502,11 @@ Active --> [*] : 正常退出
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1391-L1395)
+- [企业网站CMS系统详细需求文档.md:1391-1395](file://企业网站CMS系统详细需求文档.md#L1391-L1395)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L879-L889)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1391-L1395)
+- [企业网站CMS系统详细需求文档.md:879-889](file://企业网站CMS系统详细需求文档.md#L879-L889)
+- [企业网站CMS系统详细需求文档.md:1391-1395](file://企业网站CMS系统详细需求文档.md#L1391-L1395)
 
 ## 依赖关系分析
 
@@ -386,6 +519,7 @@ JWT[JWT认证]
 Redis[Redis缓存]
 SQLite[SQLite3数据库]
 Nginx[Nginx反向代理]
+Axios[Axios HTTP客户端]
 end
 subgraph "核心依赖"
 Flask[Flask框架]
@@ -397,6 +531,7 @@ subgraph "配置API"
 ConfigAPI[配置管理API]
 AuthAPI[认证API]
 BackupAPI[备份API]
+LogoAPI[LOGO配置API]
 end
 subgraph "业务逻辑"
 ConfigService[配置服务]
@@ -408,6 +543,8 @@ ConfigAPI --> ConfigService
 ConfigAPI --> AuditService
 ConfigAPI --> CacheService
 ConfigAPI --> ValidationService
+LogoAPI --> Axios
+LogoAPI --> ConfigService
 ConfigService --> FlaskRESTful
 ConfigService --> FlaskJWT
 ConfigService --> SQLAlchemy
@@ -419,12 +556,12 @@ FlaskRESTful --> Nginx
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L555-L594)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1232-L1322)
+- [企业网站CMS系统详细需求文档.md:555-594](file://企业网站CMS系统详细需求文档.md#L555-L594)
+- [企业网站CMS系统详细需求文档.md:1232-1322](file://企业网站CMS系统详细需求文档.md#L1232-L1322)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L555-L594)
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1232-L1322)
+- [企业网站CMS系统详细需求文档.md:555-594](file://企业网站CMS系统详细需求文档.md#L555-L594)
+- [企业网站CMS系统详细需求文档.md:1232-1322](file://企业网站CMS系统详细需求文档.md#L1232-L1322)
 
 ## 性能考虑
 
@@ -444,6 +581,11 @@ FlaskRESTful --> Nginx
 - **JWT令牌缓存**：减少JWT验证开销
 - **API限流**：防止配置API被滥用
 - **批量操作优化**：支持批量配置更新减少网络往返
+
+### 类型安全优化
+- **编译时类型检查**：通过TypeScript确保类型安全
+- **运行时类型验证**：后端API响应格式统一
+- **响应拦截器**：自动解包响应数据，减少重复代码
 
 ## 故障排除指南
 
@@ -469,17 +611,25 @@ FlaskRESTful --> Nginx
 **原因**：数据库配置错误或连接池耗尽
 **解决**：检查数据库连接配置和连接池设置
 
+#### 类型安全问题
+**问题**：前端类型错误或编译失败
+**原因**：ApiResponse类型不匹配
+**解决**：检查前端类型定义与后端响应格式是否一致
+
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1360-L1460)
+- [企业网站CMS系统详细需求文档.md:1360-1460](file://企业网站CMS系统详细需求文档.md#L1360-L1460)
 
 ## 结论
 
 系统配置API为企业网站CMS系统提供了完整的配置管理解决方案。通过模块化的架构设计、严格的配置验证机制、完善的审计日志系统和高效的性能优化，该API能够满足企业网站配置管理的各种需求。
 
+**更新** 最新的类型安全改进进一步增强了系统的可靠性，通过统一的ApiResponse类型确保前后端响应格式的一致性，减少了类型相关的错误和调试复杂度。
+
 系统的主要优势包括：
 - **功能完整性**：涵盖网站设置、SEO配置、URL配置、邮件配置、安全设置、性能配置等所有配置模块
 - **易用性**：提供直观的API接口和丰富的配置选项
 - **安全性**：完善的权限控制和审计日志机制
+- **类型安全**：通过内部ApiResponse类型确保前后端响应格式一致
 - **可扩展性**：模块化设计便于功能扩展和定制
 - **性能优化**：缓存机制和数据库优化确保高效运行
 

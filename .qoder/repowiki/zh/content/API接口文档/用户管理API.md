@@ -12,8 +12,15 @@
 - [run.py](file://company_cms_project/backend/run.py)
 - [users.ts](file://company_cms_project/frontend/src/api/users.ts)
 - [UserManager.tsx](file://company_cms_project/frontend/src/pages/UserManager.tsx)
+- [request.ts](file://company_cms_project/frontend/src/utils/request.ts)
 - [test_users_api.py](file://tests/test_users_api.py)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 增强了前端API客户端的类型安全性，所有导出函数现在包含Promise<ApiResponse<any>>返回类型注解
+- 更新了前端用户管理界面的类型定义和异步操作处理
+- 完善了API响应的类型安全性和开发者体验
 
 ## 目录
 1. [简介](#简介)
@@ -32,7 +39,7 @@
 
 用户管理API是企业内容管理系统(CMS)的核心功能模块，负责管理系统的用户账户、权限控制和身份验证。该API基于Flask框架构建，采用JWT令牌进行身份验证，提供完整的用户生命周期管理功能，包括用户创建、查询、更新、删除以及密码重置等操作。
 
-系统采用前后端分离架构，后端提供RESTful API接口，前端使用React+Ant Design构建用户界面，实现了完整的用户管理功能。
+系统采用前后端分离架构，后端提供RESTful API接口，前端使用React+Ant Design构建用户界面，实现了完整的用户管理功能。**更新后**，所有API调用都具备完整的类型安全性，增强了开发者的开发体验和代码的可靠性。
 
 ## 项目结构
 
@@ -57,14 +64,16 @@ L[frontend/] --> M[src/]
 M --> N[pages/]
 M --> O[api/]
 M --> P[components/]
-N --> Q[UserManager.tsx]
-O --> R[users.ts]
+M --> Q[utils/]
+N --> R[UserManager.tsx]
+O --> S[users.ts]
+Q --> T[request.ts]
 end
 subgraph "测试"
-S[tests/]
+U[tests/]
 end
-T[配置文件] --> U[config.py]
-V[入口文件] --> W[run.py]
+V[配置文件] --> W[config.py]
+X[入口文件] --> Y[run.py]
 ```
 
 **图表来源**
@@ -302,7 +311,7 @@ Success --> End
 
 ### 前端用户管理界面
 
-前端使用React构建用户管理界面，集成了Ant Design组件库：
+前端使用React构建用户管理界面，集成了Ant Design组件库，并具备完整的类型安全性：
 
 ```mermaid
 graph TB
@@ -319,28 +328,38 @@ F --> I[updateUser]
 F --> J[deleteUser]
 F --> K[resetPassword]
 end
+subgraph "类型安全"
+L[Promise<ApiResponse<any>>]
+M[类型推断]
+N[编译时检查]
+end
 subgraph "状态管理"
-L[loading状态]
-M[users数据]
-N[total总数]
-O[page当前页]
-P[perPage每页数量]
+O[loading状态]
+P[users数据]
+Q[total总数]
+R[current页]
+S[perPage每页数量]
 end
 A --> F
-A --> L
-A --> M
-A --> N
+F --> L
+L --> M
+M --> N
 A --> O
 A --> P
+A --> Q
+A --> R
+A --> S
 ```
 
 **图表来源**
 - [UserManager.tsx:60-396](file://company_cms_project/frontend/src/pages/UserManager.tsx#L60-L396)
-- [users.ts:1-90](file://company_cms_project/frontend/src/api/users.ts#L1-L90)
+- [users.ts:1-91](file://company_cms_project/frontend/src/api/users.ts#L1-L91)
+- [request.ts:5-9](file://company_cms_project/frontend/src/utils/request.ts#L5-L9)
 
 **章节来源**
 - [UserManager.tsx:1-396](file://company_cms_project/frontend/src/pages/UserManager.tsx#L1-L396)
-- [users.ts:1-90](file://company_cms_project/frontend/src/api/users.ts#L1-L90)
+- [users.ts:1-91](file://company_cms_project/frontend/src/api/users.ts#L1-L91)
+- [request.ts:1-76](file://company_cms_project/frontend/src/utils/request.ts#L1-L76)
 
 ## API规范
 
@@ -381,7 +400,7 @@ A --> P
 
 ### API客户端封装
 
-前端使用统一的请求封装，提供类型安全的API调用：
+前端使用统一的请求封装，提供类型安全的API调用，所有导出函数现在都包含Promise<ApiResponse<any>>返回类型注解：
 
 ```mermaid
 sequenceDiagram
@@ -394,26 +413,54 @@ API->>Auth : 获取访问令牌
 Auth-->>API : 返回令牌
 API->>Backend : 发送带令牌的请求
 Backend-->>API : 返回响应数据
-API-->>UI : 返回处理后的结果
+API-->>UI : 返回Promise<ApiResponse<any>>
 Note over UI,Backend : 自动处理认证和错误
 ```
 
+**更新** 所有API函数现在都具备完整的类型注解，提供更好的开发体验和编译时类型检查
+
 **图表来源**
-- [users.ts:6-17](file://company_cms_project/frontend/src/api/users.ts#L6-L17)
+- [users.ts:6-18](file://company_cms_project/frontend/src/api/users.ts#L6-L18)
+- [request.ts:47-70](file://company_cms_project/frontend/src/utils/request.ts#L47-L70)
 
-### 表单验证
+### 类型安全增强
 
-前端实现了完整的表单验证逻辑：
+前端API客户端现在具备完整的类型安全性：
 
-| 字段 | 验证规则 | 错误消息 |
-|------|----------|----------|
-| username | 必填，最少3个字符 | 请输入用户名，用户名至少 3 个字符 |
-| password | 必填，最少8个字符 | 请输入密码，密码长度至少 8 位 |
-| email | 必填，邮箱格式 | 请输入邮箱，邮箱格式不正确 |
-| display_name | 必填 | 请输入显示名称 |
+```typescript
+// 获取用户列表 - 具备类型注解
+export const getUsers = (params?: {
+  page?: number;
+  per_page?: number;
+  status?: number;
+  keyword?: string;
+}): Promise<ApiResponse<any>> => {
+  return request({
+    url: '/users',
+    method: 'get',
+    params,
+  });
+};
+
+// 创建用户 - 具备类型注解
+export const createUser = (data: {
+  username: string;
+  email: string;
+  password: string;
+  display_name?: string;
+  avatar?: string;
+  status?: number;
+}): Promise<ApiResponse<any>> => {
+  return request({
+    url: '/users',
+    method: 'post',
+    data,
+  });
+};
+```
 
 **章节来源**
-- [users.ts:1-90](file://company_cms_project/frontend/src/api/users.ts#L1-L90)
+- [users.ts:1-91](file://company_cms_project/frontend/src/api/users.ts#L1-L91)
 - [UserManager.tsx:305-358](file://company_cms_project/frontend/src/pages/UserManager.tsx#L305-L358)
 
 ## 安全机制
@@ -514,11 +561,17 @@ Users-->>Test : 返回测试结果
 
 用户管理API为CMS系统提供了完整、安全、易用的用户管理功能。通过采用现代的前后端分离架构、严格的认证授权机制和完善的错误处理策略，系统能够满足企业级应用的需求。
 
+**更新后的主要改进**：
+- **类型安全性**：所有API调用现在都具备完整的Promise<ApiResponse<any>>类型注解
+- **开发体验**：提供更好的IDE支持和编译时类型检查
+- **代码可靠性**：减少运行时类型错误，提高代码质量
+
 主要特点包括：
 - **安全性**：基于JWT的认证机制和多层输入验证
 - **可扩展性**：模块化的蓝图设计便于功能扩展
 - **易用性**：直观的前端界面和完整的API文档
 - **可靠性**：完善的错误处理和测试覆盖
+- **类型安全**：完整的类型注解和推断系统
 
 未来可以考虑的功能增强包括：
 - 用户角色和权限管理

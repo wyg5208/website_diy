@@ -5,6 +5,22 @@ from app.models import User, Post, Category, Tag, Media, PageComponent
 # 创建应用实例
 app = create_app(os.getenv('FLASK_ENV', 'development'))
 
+# 自动初始化数据库和默认管理员
+with app.app_context():
+    db.create_all()
+    # 检查是否存在管理员用户
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            email='admin@example.com',
+            display_name='管理员'
+        )
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+        print('默认管理员账户已创建: admin / admin123')
+
 
 @app.route('/api/health')
 def health_check():

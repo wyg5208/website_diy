@@ -4,7 +4,19 @@
 **本文档引用的文件**
 - [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md)
 - [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md)
+- [vercel.json](file://frontend/vercel.json)
+- [vercel.json](file://company_cms_project/frontend/vercel.json)
+- [VERCEL_DEPLOYMENT_GUIDE.md](file://docs/VERCEL_DEPLOYMENT_GUIDE.md)
+- [DEPLOYMENT_FILES_SUMMARY.md](file://docs/DEPLOYMENT_FILES_SUMMARY.md)
+- [request.ts](file://frontend/src/utils/request.ts)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 更新了后端服务基础设施，从Railway迁移到Render平台
+- 修改了API代理目的地配置，反映新的后端服务地址
+- 更新了相关的部署配置和环境变量说明
+- 增强了基础设施变更对Nginx配置的影响分析
 
 ## 目录
 1. [简介](#简介)
@@ -28,6 +40,8 @@
 - Gzip压缩优化
 - 负载均衡（可选）
 
+**更新** 基于最新的基础设施变更，系统现已从Railway平台迁移到Render平台，API代理目的地已相应更新为`https://website-diy.onrender.com/api/$1`。
+
 ## 项目结构
 
 基于开发计划表，项目采用前后端分离的部署架构：
@@ -50,6 +64,10 @@ Gunicorn[Gunicorn进程]
 MySQL[(MySQL数据库)]
 Redis[(Redis缓存)]
 end
+subgraph "后端平台"
+Render[Render平台]
+Railway[Railway平台]
+end
 Browser --> Nginx
 Nginx --> Static
 Nginx --> Proxy
@@ -58,15 +76,17 @@ Nginx --> Gzip
 Proxy --> Flask
 Flask --> MySQL
 Flask --> Redis
+Render --> Flask
+Railway --> Flask
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L28-L57)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L441-L506)
+- [企业网站CMS系统详细需求文档.md:28-57](file://企业网站CMS系统详细需求文档.md#L28-L57)
+- [开发计划表_2月4日-2月12日.md:441-506](file://开发计划表_2月4日-2月12日.md#L441-L506)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L22-L57)
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L441-L506)
+- [企业网站CMS系统详细需求文档.md:22-57](file://企业网站CMS系统详细需求文档.md#L22-L57)
+- [开发计划表_2月4日-2月12日.md:441-506](file://开发计划表_2月4日-2月12日.md#L441-L506)
 
 ## 核心组件
 
@@ -102,10 +122,10 @@ end
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L36-L49)
+- [企业网站CMS系统详细需求文档.md:36-49](file://企业网站CMS系统详细需求文档.md#L36-L49)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L28-L57)
+- [企业网站CMS系统详细需求文档.md:28-57](file://企业网站CMS系统详细需求文档.md#L28-L57)
 
 ## 架构概览
 
@@ -133,6 +153,10 @@ subgraph "数据层"
 MySQL[(MySQL数据库)]
 Redis[(Redis缓存)]
 end
+subgraph "后端平台"
+Render[Render平台]
+Railway[Railway平台]
+end
 Users --> Internet
 Internet --> NginxMain
 NginxMain --> SSLConf
@@ -148,10 +172,12 @@ App3 --> MySQL
 App1 --> Redis
 App2 --> Redis
 App3 --> Redis
+Render --> App1
+Railway --> App1
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L465-L487)
+- [开发计划表_2月4日-2月12日.md:465-487](file://开发计划表_2月4日-2月12日.md#L465-L487)
 
 ### 配置层次结构
 
@@ -174,7 +200,7 @@ SitesEnabled --> Site2[site2.conf]
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L465-L487)
+- [开发计划表_2月4日-2月12日.md:465-487](file://开发计划表_2月4日-2月12日.md#L465-L487)
 
 ## 详细组件分析
 
@@ -200,6 +226,8 @@ API代理配置将动态请求转发到后端Flask应用服务器。
 - 配置超时参数
 - 错误处理和重试机制
 
+**更新** 基于基础设施变更，API代理目的地已从`https://your-backend-url.railway.app/api/$1`更新为`https://website-diy.onrender.com/api/$1`。
+
 #### 基本配置示例
 
 ```mermaid
@@ -211,12 +239,12 @@ D --> E[API代理location]
 E --> F[根路径location]
 F --> G[server块结束]
 D --> H[alias D:/cms/frontend/dist/]
-E --> I[proxy_pass http://127.0.0.1:5000]
+E --> I[proxy_pass https://website-diy.onrender.com/api/$1]
 F --> J[try_files $uri /index.html]
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L467-L485)
+- [开发计划表_2月4日-2月12日.md:467-485](file://开发计划表_2月4日-2月12日.md#L467-L485)
 
 ### HTTPS证书配置
 
@@ -248,7 +276,7 @@ Nginx-->>Admin : HTTPS服务就绪
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L489-L499)
+- [开发计划表_2月4日-2月12日.md:489-499](file://开发计划表_2月4日-2月12日.md#L489-L499)
 
 ### 负载均衡配置
 
@@ -282,7 +310,7 @@ Response3 --> End
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L465-L487)
+- [开发计划表_2月4日-2月12日.md:465-487](file://开发计划表_2月4日-2月12日.md#L465-L487)
 
 ### Gzip压缩配置
 
@@ -315,7 +343,7 @@ G --> H
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L465-L487)
+- [开发计划表_2月4日-2月12日.md:465-487](file://开发计划表_2月4日-2月12日.md#L465-L487)
 
 ### 性能优化配置
 
@@ -347,7 +375,7 @@ G --> H
 - 响应发送超时
 
 **章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L465-L487)
+- [开发计划表_2月4日-2月12日.md:465-487](file://开发计划表_2月4日-2月12日.md#L465-L487)
 
 ## 依赖关系分析
 
@@ -377,6 +405,10 @@ subgraph "数据层"
 MySQL[MySQL数据库]
 Redis[Redis缓存]
 end
+subgraph "后端平台"
+Render[Render平台]
+Railway[Railway平台]
+end
 Core --> Events
 Core --> Http
 Core --> Stream
@@ -390,10 +422,12 @@ Proxy --> Waitress
 Proxy --> Gunicorn
 Flask --> MySQL
 Flask --> Redis
+Render --> Flask
+Railway --> Flask
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L44-L56)
+- [企业网站CMS系统详细需求文档.md:44-56](file://企业网站CMS系统详细需求文档.md#L44-L56)
 
 ### 配置文件依赖
 
@@ -413,10 +447,10 @@ GzipConf --> GzipParams[Gzip参数]
 ```
 
 **图表来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L465-L487)
+- [开发计划表_2月4日-2月12日.md:465-487](file://开发计划表_2月4日-2月12日.md#L465-L487)
 
 **章节来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L44-L56)
+- [企业网站CMS系统详细需求文档.md:44-56](file://企业网站CMS系统详细需求文档.md#L44-L56)
 
 ## 性能考虑
 
@@ -491,6 +525,11 @@ APIResponseCache --> ReturnCache
 3. 验证代理配置
 4. 查看代理日志
 
+**更新** 针对新的Render平台，需要特别检查：
+- Render平台的健康检查状态
+- API代理目的地配置是否正确
+- CORS跨域配置是否允许Render平台访问
+
 #### SSL证书问题
 
 **症状**：HTTPS连接失败或证书警告
@@ -524,7 +563,7 @@ APIResponseCache --> ReturnCache
 4. 调整Nginx配置参数
 
 **章节来源**
-- [开发计划表_2月4日-2月12日.md](file://开发计划表_2月4日-2月12日.md#L419-L432)
+- [开发计划表_2月4日-2月12日.md:419-432](file://开发计划表_2月4日-2月12日.md#L419-L432)
 
 ## 结论
 
@@ -535,5 +574,7 @@ Nginx反向代理在企业网站CMS系统中扮演着至关重要的角色，它
 - **性能**：优化响应时间和资源使用
 - **安全性**：实施适当的SSL/TLS配置和安全策略
 - **可维护性**：提供清晰的日志记录和监控能力
+
+**更新** 基于最新的基础设施变更，系统现已成功从Railway平台迁移到Render平台，API代理目的地已更新为`https://website-diy.onrender.com/api/$1`。这一变更确保了系统的稳定性和可靠性，同时为未来的扩展提供了更好的基础。
 
 通过合理的配置和持续的优化，Nginx能够有效支撑CMS系统的运行，为用户提供优质的访问体验。

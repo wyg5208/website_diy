@@ -1,4 +1,5 @@
 import request from '../utils/request';
+import type { ApiResponse } from '../utils/request';
 
 /**
  * 获取用户列表
@@ -8,7 +9,7 @@ export const getUsers = (params?: {
   per_page?: number;
   status?: number;
   keyword?: string;
-}) => {
+}): Promise<ApiResponse<any>> => {
   return request({
     url: '/users',
     method: 'get',
@@ -19,7 +20,7 @@ export const getUsers = (params?: {
 /**
  * 获取用户详情
  */
-export const getUser = (userId: number) => {
+export const getUser = (userId: number): Promise<ApiResponse<any>> => {
   return request({
     url: `/users/${userId}`,
     method: 'get',
@@ -36,7 +37,7 @@ export const createUser = (data: {
   display_name?: string;
   avatar?: string;
   status?: number;
-}) => {
+}): Promise<ApiResponse<any>> => {
   return request({
     url: '/users',
     method: 'post',
@@ -56,7 +57,7 @@ export const updateUser = (
     status?: number;
     password?: string;
   }
-) => {
+): Promise<ApiResponse<any>> => {
   return request({
     url: `/users/${userId}`,
     method: 'put',
@@ -67,7 +68,7 @@ export const updateUser = (
 /**
  * 删除用户
  */
-export const deleteUser = (userId: number) => {
+export const deleteUser = (userId: number): Promise<ApiResponse<any>> => {
   return request({
     url: `/users/${userId}`,
     method: 'delete',
@@ -80,7 +81,7 @@ export const deleteUser = (userId: number) => {
 export const resetPassword = (
   userId: number,
   data: { password: string }
-) => {
+): Promise<ApiResponse<any>> => {
   return request({
     url: `/users/${userId}/reset-password`,
     method: 'post',

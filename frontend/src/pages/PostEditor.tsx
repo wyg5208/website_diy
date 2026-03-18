@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Space, message, Select, Switch, Divider, Row, Col, Radio, Tabs } from 'antd';
+import { Form, Input, Button, Card, Space, message, Select, Switch, Divider, Row, Col, Radio } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getPost, createPost, updatePost, getCategoriesAndTags } from '../api/posts';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import MDEditor from '@uiw/react-md-editor';
-import ReactMarkdown from 'react-markdown';
 
 const PostEditor: React.FC = () => {
   const [form] = Form.useForm();

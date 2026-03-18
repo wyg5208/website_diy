@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Card, Button, Space, message, Empty, Input, Form, Select, InputNumber, Switch, ColorPicker, Modal, Flex, Spin, Collapse, Divider } from 'antd';
+import { Layout, Card, Button, Space, message, Empty, Input, Form, Select, InputNumber, Switch, ColorPicker, Modal, Flex, Collapse } from 'antd';
 import {
   PictureOutlined,
   FontSizeOutlined,
@@ -114,41 +114,6 @@ const BUTTON_ICON_OPTIONS = [
   { value: 'WarningOutlined', label: '警告' },
 ];
 
-// 按钮图标组件映射
-const BUTTON_ICON_MAP: Record<string, React.ReactNode> = {
-  SearchOutlined: <SearchOutlined />,
-  RightOutlined: <RightOutlined />,
-  LeftOutlined: <LeftOutlined />,
-  HomeOutlined: <HomeOutlined />,
-  LinkOutlined: <LinkOutlined />,
-  EnvironmentOutlined: <EnvironmentOutlined />,
-  PhoneOutlined: <PhoneOutlined />,
-  MailOutlined: <MailOutlined />,
-  SendOutlined: <SendOutlined />,
-  DownloadOutlined: <DownloadOutlined />,
-  PlayCircleOutlined: <PlayCircleOutlined />,
-  HeartOutlined: <HeartOutlined />,
-  StarOutlined: <StarOutlined />,
-  SettingOutlined: <SettingOutlined />,
-  UserOutlined: <UserOutlined />,
-  TeamOutlined: <TeamOutlined />,
-  ShoppingCartOutlined: <ShoppingCartOutlined />,
-  CustomerServiceOutlined: <CustomerServiceOutlined />,
-  BellOutlined: <BellOutlined />,
-  GiftOutlined: <GiftOutlined />,
-  CalendarOutlined: <CalendarOutlined />,
-  CameraOutlined: <CameraOutlined />,
-  EditOutlined: <EditOutlined />,
-  ShareAltOutlined: <ShareAltOutlined />,
-  LikeOutlined: <LikeOutlined />,
-  MessageOutlined: <MessageOutlined />,
-  QuestionCircleOutlined: <QuestionCircleOutlined />,
-  CheckCircleOutlined: <CheckCircleOutlined />,
-  CloseCircleOutlined: <CloseCircleOutlined />,
-  InfoCircleOutlined: <InfoCircleOutlined />,
-  WarningOutlined: <WarningOutlined />,
-};
-
 // 可排序组件包装器
 const SortableItem: React.FC<{
   id: string;
@@ -196,7 +161,7 @@ const PageEditor: React.FC = () => {
   const [previewMode, setPreviewMode] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [_loading, _setLoading] = useState(false);
   const [currentPageKey, setCurrentPageKey] = useState('home');
   const [pageList, setPageList] = useState<{key: string; title: string; path: string}[]>([]);
   const [categories, setCategories] = useState<any[]>([]); // 分类列表
@@ -261,7 +226,7 @@ const PageEditor: React.FC = () => {
     const loadPageData = async () => {
       if (!currentPageKey) return;
       
-      setLoading(true);
+      _setLoading(true);
       // 检查本地草稿
       const draftKey = `page_draft_${currentPageKey}`;
       const draft = localStorage.getItem(draftKey);
@@ -272,7 +237,7 @@ const PageEditor: React.FC = () => {
             setComponents(data.components);
             setPageName(data.name || currentPageKey);
             setTemplateId(data.templateId || null);
-            setLoading(false);
+            _setLoading(false);
             message.info(`已加载本地草稿: ${data.name || '草稿'}`);
             return;
           }
@@ -316,7 +281,7 @@ const PageEditor: React.FC = () => {
         setPageName(defaultNames[currentPageKey] || currentPageKey);
         setTemplateId(null);
       } finally {
-        setLoading(false);
+        _setLoading(false);
       }
     };
     

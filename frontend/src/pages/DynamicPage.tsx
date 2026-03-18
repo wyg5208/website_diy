@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Menu, Typography, Button, Space, Spin, Result } from 'antd';
+import { Layout, Menu, Button, Space, Spin, Result } from 'antd';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getPageConfig } from '../api/pages';
 import { getMenus } from '../api/menus';

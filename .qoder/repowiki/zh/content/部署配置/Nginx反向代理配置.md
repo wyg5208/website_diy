@@ -4,7 +4,20 @@
 **本文引用的文件**
 - [企业网站CMS系统开发需求文档.ini](file://企业网站CMS系统开发需求文档.ini)
 - [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md)
+- [.gitignore](file://.gitignore)
+- [config.py](file://backend/config.py)
+- [config.py](file://company_cms_project/backend/config.py)
+- [media.py](file://backend/app/api/media.py)
+- [media.py](file://company_cms_project/backend/app/api/media.py)
+- [render.yaml](file://backend/render.yaml)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 新增媒体文件存储与Git跟踪配置章节
+- 更新静态资源服务配置，增加对/tmp/media目录的支持
+- 补充媒体文件上传与存储路径的配置说明
+- 更新项目结构说明，反映媒体文件管理改进
 
 ## 目录
 1. [简介](#简介)
@@ -12,11 +25,12 @@
 3. [核心组件](#核心组件)
 4. [架构总览](#架构总览)
 5. [详细组件分析](#详细组件分析)
-6. [依赖分析](#依赖分析)
-7. [性能考量](#性能考量)
-8. [故障排查指南](#故障排查指南)
-9. [结论](#结论)
-10. [附录](#附录)
+6. [媒体文件存储与Git跟踪配置](#媒体文件存储与git跟踪配置)
+7. [依赖分析](#依赖分析)
+8. [性能考量](#性能考量)
+9. [故障排查指南](#故障排查指南)
+10. [结论](#结论)
+11. [附录](#附录)
 
 ## 简介
 本文件面向企业网站CMS系统的运维与开发人员，围绕Nginx反向代理在该系统中的核心作用与配置要点进行系统化说明。结合项目文档中的技术栈与部署架构，重点覆盖：
@@ -26,23 +40,27 @@
 - WebSocket与长连接支持
 - 错误页面、访问日志格式与安全头
 - 性能优化（超时、请求大小限制、Keep-Alive）
+- **新增** 媒体文件存储与Git跟踪配置
 
 ## 项目结构
 - 后端采用Python Flask + WSGI服务器（Windows环境推荐Waitress或Gunicorn），通过Nginx对外提供统一入口。
 - 前端可采用SPA或Jinja2模板渲染两种模式，Nginx负责静态资源与API代理。
 - 部署环境为Windows Server，Nginx版本建议1.24+。
+- **更新** 媒体文件存储采用/tmp/media目录，通过.gitignore配置支持媒体文件跟踪。
 
 ```mermaid
 graph TB
 Browser["浏览器<br/>Chrome/Firefox/Safari/Edge"] --> Nginx["Nginx 反向代理<br/>静态资源/Gzip/HTTPS/代理"]
 Nginx --> Flask["Flask 应用服务器<br/>WSGI: Waitress/Gunicorn"]
+Flask --> Media["媒体文件存储<br/>/tmp/media"]
 Flask --> DB["SQLite3 数据库"]
 Flask --> Cache["可选: Redis 缓存"]
 ```
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L22-L57
-- file://企业网站CMS系统详细需求文档.md#L631-L638
+- [企业网站CMS系统详细需求文档.md:22-57](file://企业网站CMS系统详细需求文档.md#L22-L57)
+- [.gitignore:35-37](file://.gitignore#L35-L37)
+- [render.yaml:21-22](file://backend/render.yaml#L21-L22)
 
 ## 核心组件
 - 反向代理与上游集群
@@ -57,14 +75,18 @@ Flask --> Cache["可选: Redis 缓存"]
   - 将/api/与/admin/等路径转发至上游Flask应用，正确传递真实客户端信息与协议头。
 - WebSocket支持
   - 通过HTTP/1.1与Upgrade/Connection头实现长连接代理。
+- **新增** 媒体文件存储
+  - 支持/tmp/media目录下的媒体文件访问与缓存，配合Git跟踪机制。
 - 日志与错误页面
   - 配置access_log与error_log，结合错误页面与安全头提升可观测性与安全性。
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [.gitignore:35-37](file://.gitignore#L35-L37)
+- [config.py:27-29](file://backend/config.py#L27-L29)
 
 ## 架构总览
-下图展示了Nginx在企业CMS系统中的关键职责与流量走向。
+下图展示了Nginx在企业CMS系统中的关键职责与流量走向，包括媒体文件存储的新架构。
 
 ```mermaid
 graph TB
@@ -76,20 +98,24 @@ N["监听80/443<br/>HTTPS终止/安全头/Gzip/静态缓存/代理"]
 end
 subgraph "后端层"
 F["Flask 应用(Win: Waitress/Gunicorn)"]
-S["SQLite3"]
+S["SQLite3 数据库"]
 R["可选: Redis"]
+M["媒体文件存储<br/>/tmp/media"]
 end
 U --> N
 N --> F
+F --> M
 F --> S
 F --> R
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L22-L57)
+- [企业网站CMS系统详细需求文档.md:22-57](file://企业网站CMS系统详细需求文档.md#L22-L57)
+- [render.yaml:21-22](file://backend/render.yaml#L21-L22)
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L22-L57
+- [企业网站CMS系统详细需求文档.md:22-57](file://企业网站CMS系统详细需求文档.md#L22-L57)
+- [render.yaml:21-22](file://backend/render.yaml#L21-L22)
 
 ## 详细组件分析
 
@@ -118,10 +144,10 @@ NG-->>B : "返回响应"
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 ### HTTPS配置
 - 证书与密钥
@@ -142,10 +168,10 @@ Proxy --> End(["返回响应"])
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 ### 静态资源服务与缓存策略
 - 静态目录映射
@@ -154,6 +180,8 @@ Proxy --> End(["返回响应"])
   - 通过expires与add_header Cache-Control实现长期缓存与immutable策略，减少带宽消耗。
 - 前端SPA路由
   - /路径使用try_files回退到index.html，保证前端路由正常工作。
+- **更新** 媒体文件缓存
+  - /media/路径配置针对媒体文件的缓存策略，支持图片、视频等多媒体资源的高效传输。
 
 ```mermaid
 flowchart TD
@@ -165,10 +193,10 @@ Match --> |否| Next["继续其他location匹配"]
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 ### Gzip压缩
 - 启用gzip并设置压缩阈值与类型
@@ -177,7 +205,7 @@ Match --> |否| Next["继续其他location匹配"]
   - 对图片、视频等二进制资源不启用压缩，避免CPU浪费与体积膨胀。
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 ### WebSocket与长连接支持
 - HTTP/1.1与Upgrade头
@@ -186,7 +214,7 @@ Match --> |否| Next["继续其他location匹配"]
   - 若系统需要实时通信（如聊天、推送），可在相应location中启用此配置。
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 ### 错误页面、访问日志与安全头
 - 访问日志与错误日志
@@ -197,7 +225,7 @@ Match --> |否| Next["继续其他location匹配"]
   - X-Frame-Options、X-Content-Type-Options、X-XSS-Protection等，提升浏览器层面的安全性。
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 ### 性能优化配置
 - 客户端最大上传大小
@@ -208,8 +236,56 @@ Match --> |否| Next["继续其他location匹配"]
   - 结合Flask-Limiter等中间件实现基于IP/用户的请求频率限制，缓解DDoS与滥用风险。
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
-- file://企业网站CMS系统详细需求文档.md#L1232-L1302
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [企业网站CMS系统详细需求文档.md:1232-1302](file://企业网站CMS系统详细需求文档.md#L1232-L1302)
+
+## 媒体文件存储与Git跟踪配置
+
+### Git跟踪配置更新
+项目采用新的.gitignore配置，专门针对媒体文件的Git跟踪进行了优化：
+
+- 媒体文件目录排除
+  - 默认排除media/目录，避免媒体文件被Git跟踪
+- 媒体文件子目录例外
+  - 使用!tmp/media/排除规则，允许tmp/media目录下的文件被Git跟踪
+- Git跟踪机制
+  - 通过.gitkeep文件确保空目录在Git中可见，同时保持媒体文件的版本控制能力
+
+### 媒体文件存储架构
+- 存储位置
+  - 生产环境使用/tmp/media作为媒体文件存储目录
+  - 开发环境使用./media作为本地存储目录
+- 目录结构
+  - 按年/月结构组织媒体文件，自动创建日期分组目录
+  - 使用UUID前缀避免文件名冲突
+
+### Nginx配置要求
+- 媒体文件访问
+  - 配置/media/路径映射到/tmp/media目录
+  - 设置适当的缓存策略和访问权限
+- Git集成
+  - 确保Nginx有权限读取/tmp/media目录中的文件
+  - 配置静态文件缓存以提升媒体资源加载速度
+
+```mermaid
+flowchart TD
+Git[".gitignore<br/>媒体文件跟踪配置"] --> Exclude["排除 media/ 目录"]
+Exclude --> Allow["允许 tmp/media/ 目录"]
+Allow --> Keep[".gitkeep<br/>空目录跟踪"]
+Keep --> Store["媒体文件存储<br/>/tmp/media/年/月/"]
+Store --> Access["Nginx访问<br/>/media/路径映射"]
+```
+
+**图表来源**
+- [.gitignore:35-37](file://.gitignore#L35-L37)
+- [media.py:114-130](file://backend/app/api/media.py#L114-L130)
+
+**章节来源**
+- [.gitignore:35-37](file://.gitignore#L35-L37)
+- [config.py:27-29](file://backend/config.py#L27-L29)
+- [config.py:24-26](file://company_cms_project/backend/config.py#L24-L26)
+- [media.py:114-130](file://backend/app/api/media.py#L114-L130)
+- [render.yaml:21-22](file://backend/render.yaml#L21-L22)
 
 ## 依赖分析
 - Nginx与Flask的耦合点
@@ -218,20 +294,29 @@ Match --> |否| Next["继续其他location匹配"]
   - 静态资源路径与缓存头直接影响首屏加载与带宽消耗。
 - 安全与合规
   - HTTPS与安全头配置直接影响传输安全与浏览器信任度。
+- **新增** 媒体文件存储依赖
+  - Nginx需要访问/tmp/media目录中的媒体文件
+  - Git配置影响媒体文件的版本控制和团队协作
 
 ```mermaid
 graph LR
 N["Nginx"] --> |代理| F["Flask"]
 N --> |静态资源| Static["/static/, /media/"]
+N --> |媒体文件| Media["/tmp/media/"]
 F --> |日志| L["access/error_log"]
+F --> |媒体存储| Store["UPLOAD_FOLDER配置"]
 N --> |安全头| B["浏览器安全策略"]
 ```
 
 **图表来源**
-- [企业网站CMS系统详细需求文档.md](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [config.py:27-29](file://backend/config.py#L27-L29)
+- [render.yaml:21-22](file://backend/render.yaml#L21-L22)
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [config.py:27-29](file://backend/config.py#L27-L29)
+- [render.yaml:21-22](file://backend/render.yaml#L21-L22)
 
 ## 性能考量
 - 静态资源缓存与Gzip
@@ -240,8 +325,9 @@ N --> |安全头| B["浏览器安全策略"]
   - client_max_body_size与后端WSGI超时参数协同，避免异常请求造成资源耗尽。
 - 负载均衡扩展
   - 当并发增长时，可通过upstream多实例与后端WSGI多worker/异步模式提升吞吐。
-
-[本节为通用指导，不直接分析具体文件]
+- **新增** 媒体文件性能优化
+  - 媒体文件按日期分组存储，便于清理和管理
+  - Nginx缓存策略优化媒体资源的传输效率
 
 ## 故障排查指南
 - 404/502/504常见原因
@@ -252,14 +338,15 @@ N --> |安全头| B["浏览器安全策略"]
   - 检查ssl_certificate与ssl_certificate_key路径与权限，确认证书链完整。
 - WebSocket无法升级
   - 确认proxy_http_version 1.1与Upgrade/Connection头已正确设置。
+- **新增** 媒体文件访问问题
+  - 检查/tmp/media目录权限和Nginx访问权限
+  - 验证Git跟踪配置是否正确，确保媒体文件被正确版本控制
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
 
 ## 结论
-Nginx在企业CMS系统中承担“统一入口、安全边界、性能优化”的关键角色。通过合理的反向代理、HTTPS、静态资源缓存与Gzip配置，以及对WebSocket与长连接的支持，可有效提升用户体验与系统稳定性。建议在生产环境中持续监控日志与性能指标，并根据业务增长逐步引入多实例与CDN等扩展手段。
-
-[本节为总结性内容，不直接分析具体文件]
+Nginx在企业CMS系统中承担"统一入口、安全边界、性能优化"的关键角色。通过合理的反向代理、HTTPS、静态资源缓存与Gzip配置，以及对WebSocket与长连接的支持，可有效提升用户体验与系统稳定性。**新增的媒体文件存储与Git跟踪配置**进一步完善了系统的文件管理能力，通过/tmp/media目录的使用和.gitignore的优化配置，实现了媒体文件的有效存储、版本控制和高效访问。建议在生产环境中持续监控日志与性能指标，并根据业务增长逐步引入多实例与CDN等扩展手段。
 
 ## 附录
 - 配置要点清单
@@ -273,6 +360,12 @@ Nginx在企业CMS系统中承担“统一入口、安全边界、性能优化”
   - access_log与error_log
   - client_max_body_size限制
   - Keep-Alive与超时参数
+  - **新增** 媒体文件存储配置
+  - **新增** Git跟踪配置
+  - **新增** /tmp/media目录权限设置
 
 **章节来源**
-- file://企业网站CMS系统详细需求文档.md#L1143-L1230
+- [企业网站CMS系统详细需求文档.md:1143-1230](file://企业网站CMS系统详细需求文档.md#L1143-L1230)
+- [.gitignore:35-37](file://.gitignore#L35-L37)
+- [config.py:27-29](file://backend/config.py#L27-L29)
+- [render.yaml:21-22](file://backend/render.yaml#L21-L22)

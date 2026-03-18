@@ -10,7 +10,6 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { 
-  LineChart, 
   Line, 
   XAxis, 
   YAxis, 

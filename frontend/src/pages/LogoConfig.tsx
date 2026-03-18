@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Layout, Card, Form, Input, InputNumber, Switch, Button, Space, 
   message, Row, Col, Divider, ColorPicker, Typography, Select, 
-  Upload, Image, Radio, ConfigProvider
+  Image, Radio
 } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import { 
@@ -17,7 +17,6 @@ import { getLogoConfig, updateLogoConfig } from '../api/logo';
 import { getMediaList } from '../api/media';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 const { Content } = Layout;
 const { Option } = Select;
 

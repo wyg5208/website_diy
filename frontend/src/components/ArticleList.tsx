@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Pagination, Typography, Tag, Space, Skeleton, Empty, Button } from 'antd';
+import { Card, Row, Col, Pagination, Typography, Tag, Space, Skeleton, Empty } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { getPublicPosts } from '../api/posts';
 import dayjs from 'dayjs';
 
-const { Title, Paragraph, Meta } = Typography;
+const { Title, Paragraph } = Typography;
 
 interface ArticleListProps {
   categoryId?: number;      // 指定分类 ID
@@ -75,7 +75,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
                   onClick={() => navigate(`/post/${article.id}`)}
                   style={{ borderRadius: '8px' }}
                 >
-                  <Meta
+                  <Card.Meta
                     title={
                       <Title level={4} style={{ margin: 0 }}>
                         {article.title}
@@ -97,7 +97,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
                             <Tag key={cat.id} color="blue">{cat.name}</Tag>
                           ))}
                           {article.tags && article.tags.map((tag: any) => (
-                            <Tag key={tag.id} key={tag.id}>{tag.name}</Tag>
+                            <Tag key={`tag-${tag.id}`}>{tag.name}</Tag>
                           ))}
                         </Space>
 

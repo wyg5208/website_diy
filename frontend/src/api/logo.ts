@@ -1,5 +1,4 @@
 import request from '../utils/request';
-import type { AxiosResponse } from 'axios';
 import type { ApiResponse } from '../utils/request';
 
 // LOGO 配置相关API

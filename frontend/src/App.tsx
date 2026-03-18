@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import type { ReactNode } from 'react';
 import Home from './pages/Home';
-import PostDetail from './pages/PostDetail';
 import PostDetailPage from './pages/PostDetailPage';
 import Login from './pages/Login';
 import AdminLayout from './layout/AdminLayout';

@@ -6,7 +6,6 @@ import {
   Modal,
   Form,
   Input,
-  Select,
   message,
   Popconfirm,
   Tag,
@@ -16,7 +15,6 @@ import {
 } from 'antd';
 import {
   PlusOutlined,
-  EditOutlined,
   DeleteOutlined,
   KeyOutlined,
   UserOutlined,
@@ -48,13 +46,6 @@ interface CreateUserForm {
   display_name: string;
   avatar?: string;
   status: number;
-}
-
-interface UpdateUserForm {
-  display_name: string;
-  email: string;
-  status: number;
-  avatar?: string;
 }
 
 const UserManager: React.FC = () => {

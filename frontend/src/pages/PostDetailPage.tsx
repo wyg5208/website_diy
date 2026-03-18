@@ -7,7 +7,7 @@ import { LeftOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 
 const { Header, Content, Footer } = Layout;
-const { Title, Paragraph, Text } = Typography;
+const { Title, Text } = Typography;
 
 const PostDetail: React.FC = () => {
   const [loading, setLoading] = useState(false);

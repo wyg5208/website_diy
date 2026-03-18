@@ -14,7 +14,7 @@ import type { MenuItem } from '../types/menu';
 import type { LogoConfig } from '../types/components';
 import { useTheme } from '../contexts/ThemeContext';
 
-const { Header, Content, Footer } = Layout;
+const { Header, Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 
 const Home: React.FC = () => {

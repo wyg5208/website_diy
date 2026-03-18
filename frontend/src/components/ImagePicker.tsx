@@ -7,6 +7,17 @@ import type { RcFile } from 'antd/es/upload/interface';
 
 const { Dragger } = Upload;
 
+// 获取 API 基础地址（不含 /api/v1）
+const getBaseUrl = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1';
+  return apiUrl.replace('/api/v1', '');
+};
+
+// 获取完整 API 地址
+const getApiUrl = () => {
+  return import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1';
+};
+
 interface ImagePickerProps {
   value?: string;
   onChange?: (url: string) => void;
@@ -87,7 +98,7 @@ const ImagePicker: React.FC<ImagePickerProps> = ({ value, onChange, placeholder 
       setUploading(true);
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:5000/api/v1/media/upload', {
+        const response = await fetch(`${getApiUrl()}/media/upload`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -107,7 +118,7 @@ const ImagePicker: React.FC<ImagePickerProps> = ({ value, onChange, placeholder 
         if (response.ok && result.code === 201) {
           onSuccess?.(result);
           message.success('上传成功');
-          const imageUrl = `http://127.0.0.1:5000${result.data.file_url}`;
+          const imageUrl = `${getBaseUrl()}${result.data.file_url}`;
           setSelectedUrl(imageUrl);
           fetchMedia();
           setActiveTab('library');
@@ -186,7 +197,7 @@ const ImagePicker: React.FC<ImagePickerProps> = ({ value, onChange, placeholder 
                 grid={{ gutter: 12, column: 4 }}
                 dataSource={mediaList}
                 renderItem={(item) => {
-                  const imageUrl = `http://127.0.0.1:5000${item.file_url}`;
+                  const imageUrl = `${getBaseUrl()}${item.file_url}`;
                   const isSelected = selectedUrl === imageUrl;
                   return (
                     <List.Item>

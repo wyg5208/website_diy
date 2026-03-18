@@ -1,7 +1,7 @@
 # 企业网站CMS系统
 
-**版本**: v1.5.1  
-**更新日期**: 2026 年 3 月 17 日
+**版本**: v1.6.0  
+**更新日期**: 2026 年 3 月 18 日
 
 一个基于 Python Flask + React 的企业官网内容管理系统，支持可视化拖拽配置，降低技术门槛，提升网站管理效率。
 
@@ -65,34 +65,34 @@
 
 ```
 company_cms/
-├── company_cms_project/
-│   ├── backend/              # Flask后端
-│   │   ├── app/
-│   │   │   ├── api/          # API蓝图 (文章、分类、媒体等)
-│   │   │   ├── auth/         # 认证模块
-│   │   │   ├── models/       # 数据模型
-│   │   │   └── utils/        # 工具函数
-│   │   ├── data/             # SQLite数据库文件
-│   │   ├── media/            # 上传的媒体文件
-│   │   ├── migrations/       # 数据库迁移
-│   │   ├── config.py         # 配置文件
-│   │   ├── requirements.txt  # Python依赖
-│   │   └── run.py            # 启动入口
-│   │
-│   └── frontend/             # React前端
-│       ├── src/
-│       │   ├── api/          # API接口封装
-│       │   ├── components/   # 通用组件
-│       │   ├── contexts/     # React上下文
-│       │   ├── layout/       # 布局组件
-│       │   ├── pages/        # 页面组件
-│       │   ├── types/        # TypeScript类型定义
-│       │   └── utils/        # 工具函数
-│       ├── package.json      # Node依赖
-│       └── vite.config.ts    # Vite配置
+├── backend/                  # Flask后端
+│   ├── app/
+│   │   ├── api/              # API蓝图 (文章、分类、媒体等)
+│   │   ├── auth/             # 认证模块
+│   │   ├── models/           # 数据模型
+│   │   └── utils/            # 工具函数
+│   ├── data/                 # SQLite数据库文件
+│   ├── media/                # 上传的媒体文件
+│   ├── migrations/           # 数据库迁移
+│   ├── config.py             # 配置文件
+│   ├── requirements.txt      # Python依赖
+│   └── run.py                # 启动入口
 │
-├── start_backend.bat         # 启动后端脚本
-├── start_frontend.bat        # 启动前端脚本
+├── frontend/                 # React前端
+│   ├── src/
+│   │   ├── api/              # API接口封装
+│   │   ├── components/       # 通用组件
+│   │   ├── contexts/         # React上下文
+│   │   ├── layout/           # 布局组件
+│   │   ├── pages/            # 页面组件
+│   │   ├── types/            # TypeScript类型定义
+│   │   └── utils/            # 工具函数
+│   ├── package.json          # Node依赖
+│   └── vite.config.ts        # Vite配置
+│
+├── deploy/                   # 部署脚本
+├── docs/                     # 文档目录
+├── tests/                    # 测试脚本
 └── .gitignore                # Git忽略配置
 ```
 
@@ -117,7 +117,7 @@ cd company_cms
 
 ```bash
 # 进入后端目录
-cd company_cms_project/backend
+cd backend
 
 # 创建虚拟环境
 python -m venv venv
@@ -141,7 +141,7 @@ python run.py
 
 ```bash
 # 进入前端目录
-cd company_cms_project/frontend
+cd frontend
 
 # 安装依赖
 npm install
@@ -196,7 +196,26 @@ npm run dev
 
 ---
 
-## 最新版本 (v1.5.1)
+## 最新版本 (v1.6.0)
+
+**发布日期**: 2026-03-18
+
+### 重构优化
+
+#### 项目目录结构扁平化迁移 🏗️
+- ✅ 将 backend/ 和 frontend/ 提升到项目根目录，消除 company_cms_project/ 中间层
+- ✅ 修复 Flask-SQLAlchemy SQLite 路径解析问题（使用 basedir 绝对路径）
+- ✅ 更新所有部署脚本路径引用（4 个脚本）
+- ✅ 全面更新项目文档路径引用（README + 18 个 docs 文档，共 80+ 处）
+
+### 技术改进
+- 📝 config.py 数据库路径改用 basedir 构建，避免 instance_path 拼接问题
+- 🏗️ 项目结构更加扁平清晰，降低路径复杂度
+- 🛡️ 采用渐进式迁移策略，保留原目录支持回滚
+
+---
+
+## 上一版本 (v1.5.1)
 
 **发布日期**: 2026-03-17
 
@@ -214,7 +233,7 @@ npm run dev
 
 ---
 
-## 上一版本 (v1.5.0)
+## 历史版本 (v1.5.0)
 
 **发布日期**: 2026-03-17
 
@@ -240,7 +259,7 @@ npm run dev
 
 ---
 
-## 上一版本 (v1.4.1)
+## 历史版本 (v1.4.1)
 
 **发布日期**: 2026-03-16
 
@@ -262,7 +281,7 @@ npm run dev
 
 ---
 
-## 上一版本 (v1.4.0)
+## 历史版本 (v1.4.0)
 
 **发布日期**: 2026-03-16
 
@@ -293,7 +312,7 @@ npm run dev
 
 ---
 
-## 上一版本 (v1.3.1)
+## 历史版本 (v1.3.1)
 
 **发布日期**: 2026-03-16
 
@@ -413,7 +432,7 @@ git clone <repository-url> .
 #### 2. 后端部署
 
 ```powershell
-cd company_cms_project\backend
+cd backend
 
 # 创建虚拟环境
 python -m venv venv
@@ -433,7 +452,7 @@ python init_data.py
 #### 3. 前端构建
 
 ```powershell
-cd company_cms_project\frontend
+cd frontend
 
 # 安装依赖
 npm install
@@ -463,18 +482,18 @@ server {
 
     # 静态资源
     location /static/ {
-        alias D:/cms/company_cms_project/backend/app/static/;
+        alias D:/cms/backend/app/static/;
         expires 30d;
     }
 
     location /media/ {
-        alias D:/cms/company_cms_project/backend/media/;
+        alias D:/cms/backend/media/;
         expires 30d;
     }
 
     # 前端页面
     location / {
-        root D:/cms/company_cms_project/frontend/dist;
+        root D:/cms/frontend/dist;
         try_files $uri $uri/ /index.html;
     }
 
@@ -494,7 +513,7 @@ server {
 使用 Waitress 启动 (Windows友好):
 
 ```powershell
-cd D:\cms\company_cms_project\backend
+cd D:\cms\backend
 venv\Scripts\activate
 waitress-serve --host=127.0.0.1 --port=5000 run:app
 ```
@@ -504,8 +523,8 @@ waitress-serve --host=127.0.0.1 --port=5000 run:app
 ```powershell
 # 下载 NSSM: https://nssm.cc/download
 
-nssm install CMSApp "D:\cms\company_cms_project\backend\venv\Scripts\python.exe"
-nssm set CMSApp AppDirectory "D:\cms\company_cms_project\backend"
+nssm install CMSApp "D:\cms\backend\venv\Scripts\python.exe"
+nssm set CMSApp AppDirectory "D:\cms\backend"
 nssm set CMSApp AppParameters "run.py"
 nssm set CMSApp DisplayName "CMS Flask Application"
 nssm start CMSApp
@@ -601,10 +620,16 @@ nssm start CMSApp
 ---
 
 **项目周期**: 2026 年 2 月 4 日 ~ 2 月 12 日  
-**当前版本**: v1.5.1  
+**当前版本**: v1.6.0  
 **技术栈**: Python Flask + React + SQLite3 + Nginx + Windows Server
 
 ## 版本历史
+
+### v1.6.0 (2026-03-18)
+- ✅ 项目目录结构扁平化迁移，将 backend/ 和 frontend/ 提升到根目录
+- ✅ 消除 company_cms_project/ 中间层目录
+- ✅ 修复 Flask-SQLAlchemy SQLite 路径解析问题
+- ✅ 更新所有部署脚本和项目文档路径引用
 
 ### v1.5.1 (2026-03-17)
 - ✅ 容器子组件新增"文章列表"选项

@@ -152,14 +152,14 @@
 ### 1. 数据库迁移
 
 ```bash
-cd company_cms_project/backend
+cd backend
 python add_content_format_field.py
 ```
 
 ### 2. 前端依赖安装
 
 ```bash
-cd company_cms_project/frontend
+cd frontend
 npm install
 ```
 
@@ -172,11 +172,11 @@ npm install
 **方式一：手动启动**
 ```bash
 # 后端
-cd company_cms_project/backend
+cd backend
 python run.py
 
 # 前端
-cd company_cms_project/frontend
+cd frontend
 npm run dev
 ```
 
@@ -301,7 +301,7 @@ test_article_features.bat
    - `TEST_ARTICLE_FEATURES.md` - 测试指南
 
 2. **检查日志**：
-   - 后端：`company_cms_project/backend/logs/`
+   - 后端：`backend/logs/`
    - 前端：浏览器控制台（F12）
 
 3. **常见问题**：

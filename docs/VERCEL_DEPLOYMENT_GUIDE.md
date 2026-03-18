@@ -3,8 +3,8 @@
 ## 项目架构说明
 
 本项目是前后端分离架构:
-- **前端**: React + Vite + TypeScript (位于 `company_cms_project/frontend/`)
-- **后端**: Flask + Python (位于 `company_cms_project/backend/`)
+- **前端**: React + Vite + TypeScript (位于 `frontend/`)
+- **后端**: Flask + Python (位于 `backend/`)
 
 ## 部署方案
 
@@ -16,7 +16,7 @@
 
 ```bash
 # 进入前端目录
-cd company_cms_project/frontend
+cd frontend
 
 # 安装依赖
 npm install
@@ -56,7 +56,7 @@ git push origin main
 3. 导入你的 GitHub 仓库
 4. 配置项目设置:
    - **Framework Preset**: Vite
-   - **Root Directory**: `company_cms_project/frontend`
+   - **Root Directory**: `frontend`
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
 5. 添加环境变量 `VITE_API_URL`
@@ -105,7 +105,7 @@ pip freeze > requirements.txt
 2. 注册账号并创建 "New Web Service"
 3. 连接你的 GitHub 仓库
 4. 配置:
-   - **Root Directory**: `company_cms_project/backend`
+   - **Root Directory**: `backend`
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn run:app`
 5. 添加环境变量
@@ -131,7 +131,7 @@ flask create_admin
 创建 `Procfile`:
 
 ```bash
-# company_cms_project/backend/Procfile
+# backend/Procfile
 web: gunicorn run:app
 ```
 
@@ -218,7 +218,7 @@ MAX_CONTENT_LENGTH=52428800
 ## 本地测试生产构建
 
 ```bash
-cd company_cms_project/frontend
+cd frontend
 npm run build
 npm run preview
 ```

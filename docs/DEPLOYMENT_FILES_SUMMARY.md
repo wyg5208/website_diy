@@ -5,7 +5,7 @@
 ### 🎯 核心配置文件
 
 #### 1. `render.yaml` (后端)
-**位置**: `company_cms_project/backend/render.yaml`
+**位置**: `backend/render.yaml`
 
 **作用**: Render 平台的主要配置文件，定义服务、数据库和环境变量
 
@@ -18,7 +18,7 @@
 ---
 
 #### 2. `Procfile` (后端)
-**位置**: `company_cms_project/backend/Procfile`
+**位置**: `backend/Procfile`
 
 **作用**: 定义应用启动命令
 
@@ -30,7 +30,7 @@ web: gunicorn run:app
 ---
 
 #### 3. `requirements.txt` (后端) - 已更新
-**位置**: `company_cms_project/backend/requirements.txt`
+**位置**: `backend/requirements.txt`
 
 **新增**: 
 ```
@@ -42,7 +42,7 @@ gunicorn==21.2.0  # WSGI 服务器，用于生产环境
 ### 🔧 部署脚本
 
 #### 4. `prepare_render.bat` (后端)
-**位置**: `company_cms_project/backend/prepare_render.bat`
+**位置**: `backend/prepare_render.bat`
 
 **作用**: Windows 下的准备脚本，检查和配置所有部署依赖
 
@@ -57,7 +57,7 @@ gunicorn==21.2.0  # WSGI 服务器，用于生产环境
 ---
 
 #### 5. `prepare_render.sh` (后端)
-**位置**: `company_cms_project/backend/prepare_render.sh`
+**位置**: `backend/prepare_render.sh`
 
 **作用**: Linux/Mac 下的准备脚本 (功能同上)
 
@@ -80,7 +80,7 @@ gunicorn==21.2.0  # WSGI 服务器，用于生产环境
 ### 📖 文档
 
 #### 7. `README_RENDER.md` (后端)
-**位置**: `company_cms_project/backend/README_RENDER.md`
+**位置**: `backend/README_RENDER.md`
 
 **内容**:
 - 快速部署指南
@@ -96,7 +96,7 @@ gunicorn==21.2.0  # WSGI 服务器，用于生产环境
 ### 🔄 代码修改
 
 #### 8. `run.py` (后端) - 已修改
-**位置**: `company_cms_project/backend/run.py`
+**位置**: `backend/run.py`
 
 **新增**:
 ```python
@@ -115,7 +115,7 @@ def health_check():
 ---
 
 #### 9. `request.ts` (前端) - 已修改
-**位置**: `company_cms_project/frontend/src/utils/request.ts`
+**位置**: `frontend/src/utils/request.ts`
 
 **修改**:
 ```typescript
@@ -127,14 +127,14 @@ baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1'
 ---
 
 #### 10. `vercel.json` (前端) - 已创建
-**位置**: `company_cms_project/frontend/vercel.json`
+**位置**: `frontend/vercel.json`
 
 **作用**: Vercel 配置文件，包含 API 代理规则
 
 ---
 
 #### 11. `.env.example` (前端) - 已创建
-**位置**: `company_cms_project/frontend/.env.example`
+**位置**: `frontend/.env.example`
 
 **作用**: 环境变量示例文件
 
@@ -158,7 +158,7 @@ deploy_to_render.bat
 #### 步骤 1: 准备后端
 
 ```bash
-cd company_cms_project/backend
+cd backend
 prepare_render.bat
 ```
 
@@ -179,7 +179,7 @@ git push -u origin main
 2. 登录并创建 "New Web Service"
 3. 连接 GitHub 仓库
 4. 配置:
-   - **Root Directory**: `company_cms_project/backend`
+   - **Root Directory**: `backend`
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn run:app`
 5. 添加环境变量
@@ -198,7 +198,7 @@ flask create_admin
 1. 访问 [vercel.com](https://vercel.com)
 2. 导入 GitHub 仓库
 3. 配置:
-   - **Root Directory**: `company_cms_project/frontend`
+   - **Root Directory**: `frontend`
    - **Framework Preset**: Vite
 4. 添加环境变量:
    ```
@@ -309,7 +309,7 @@ curl https://your-backend.onrender.com/api/health
 
 **解决**:
 ```bash
-cd company_cms_project/backend
+cd backend
 pip install --upgrade pip
 pip freeze > requirements.txt
 git add requirements.txt

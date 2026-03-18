@@ -152,7 +152,7 @@ const [state, setState] = useOptimistic(initialState);
 
 **解决方案**：
 ```bash
-cd company_cms_project/frontend
+cd frontend
 npm install @uiw/react-md-editor react-markdown
 ```
 

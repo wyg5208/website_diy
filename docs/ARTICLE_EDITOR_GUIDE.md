@@ -18,7 +18,7 @@
 首先执行数据库迁移脚本添加 `content_format` 字段：
 
 ```bash
-cd company_cms_project/backend
+cd backend
 python add_content_format_field.py
 ```
 
@@ -178,7 +178,7 @@ import ArticleList from './components/ArticleList';
 
 如需手动安装：
 ```bash
-cd company_cms_project/frontend
+cd frontend
 npm install @uiw/react-md-editor react-markdown
 ```
 
@@ -286,6 +286,6 @@ npm install @uiw/react-md-editor react-markdown
 ## 📞 技术支持
 
 如有问题，请查看：
-- 后端日志：`company_cms_project/backend/logs/`
+- 后端日志：`backend/logs/`
 - 浏览器控制台错误信息
 - API 响应数据（F12 Network 面板）

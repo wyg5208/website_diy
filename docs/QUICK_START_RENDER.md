@@ -55,7 +55,7 @@ deploy_to_render.bat
 Name: company-cms-backend
 Region: Oregon (俄勒冈)
 Branch: main
-Root Directory: company_cms_project/backend
+Root Directory: backend
 Build Command: pip install -r requirements.txt
 Start Command: gunicorn run:app
 ```
@@ -122,7 +122,7 @@ https://company-cms-backend.onrender.com
 
 1. 访问 [vercel.com](https://vercel.com)
 2. 登录并导入 GitHub 仓库
-3. Root Directory: `company_cms_project/frontend`
+3. Root Directory: `frontend`
 4. 添加环境变量:
    ```
    VITE_API_URL=https://your-backend.onrender.com/api/v1

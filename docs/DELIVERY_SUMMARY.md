@@ -136,7 +136,7 @@
 
 ```bash
 # 执行数据库迁移
-cd company_cms_project/backend
+cd backend
 python add_content_format_field.py
 
 # 安装前端依赖（如未自动安装）
@@ -288,7 +288,7 @@ npm run dev    # 前端
    - `EMBED_ARTICLE_COMPONENT.md` - 组件嵌入指南
 
 2. **检查日志**：
-   - 后端：`company_cms_project/backend/logs/`
+   - 后端：`backend/logs/`
    - 前端：浏览器控制台（F12）
 
 3. **常见问题排查**：

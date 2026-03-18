@@ -2,7 +2,6 @@
 
 <cite>
 **本文档引用的文件**
-- [app/__init__.py](file://company_cms_project/backend/app/__init__.py)
 - [config.py](file://company_cms_project/backend/config.py)
 - [auth/routes.py](file://company_cms_project/backend/app/auth/routes.py)
 - [api/posts.py](file://company_cms_project/backend/app/api/posts.py)
@@ -15,6 +14,16 @@
 - [models/post.py](file://company_cms_project/backend/app/models/post.py)
 - [models/user.py](file://company_cms_project/backend/app/models/user.py)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 新增完整的用户管理API文档，包含用户CRUD操作和密码管理
+- 完善文章管理API文档，涵盖文章和页面的完整生命周期管理
+- 新增媒体库管理API文档，支持文件上传、管理和删除
+- 完善菜单管理API文档，支持动态菜单配置和页面关联
+- 新增系统配置API文档，涵盖站点配置、页面配置和主题设置
+- 更新数据模型关系图，展示完整的实体关系结构
+- 增强错误处理和安全考虑章节，反映实际实现细节
 
 ## 目录
 1. [简介](#简介)

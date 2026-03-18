@@ -36,7 +36,7 @@ class Config:
     POSTS_PER_PAGE = 20
     
     # CORS配置
-    CORS_ORIGINS = [
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*') if os.getenv('FLASK_ENV') == 'production' else [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:5173',  # Vite默认端口
